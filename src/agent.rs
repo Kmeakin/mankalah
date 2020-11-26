@@ -1,10 +1,7 @@
 use crate::grammar::ProtocolGrammar;
-use std::io::{BufRead, Write};
+use std::io::BufRead;
 
-use crate::{
-    board::{BoardState, PlayerState, Position},
-    protocol::*,
-};
+use crate::{board::*, protocol::*};
 
 fn read_line() -> String {
     let mut line = String::new();
@@ -13,13 +10,8 @@ fn read_line() -> String {
     line
 }
 
-fn send_move(chosen_move: MoveSwap) {
-    let mut stdout = std::io::stdout();
-    stdout
-        .lock()
-        .write_all(chosen_move.to_string().as_bytes())
-        .unwrap();
-    stdout.flush().unwrap(); // just in case
+fn send_move(chosen_move: PlayerMove) {
+    print!("{}", chosen_move.to_string());
 }
 
 fn read_engine_message() -> EngineMessage {
@@ -47,8 +39,8 @@ impl Agent {
 
     fn make_move(&mut self) {
         let pie_rule_active = self.first_move && self.position == Position::North;
-        let chosen_move = self.our_state().get_moves(pie_rule_active).next().unwrap();
-        if let MoveSwap::Swap = chosen_move {
+        let chosen_move = self.our_state().moves_iter(pie_rule_active).next().unwrap();
+        if let PlayerMove::Swap = chosen_move {
             self.swap_sides();
         }
         send_move(chosen_move);
@@ -85,16 +77,16 @@ impl Agent {
                     return;
                 }
                 EngineMessage::StateChange {
-                    move_or_swap,
+                    player_move,
                     state,
                     turn,
                 } => {
                     self.state = state;
-                    match move_or_swap {
-                        MoveSwap::Swap => {
+                    match player_move {
+                        PlayerMove::Swap => {
                             self.swap_sides();
                         }
-                        MoveSwap::Move { .. } => { /* Ignore their move for now */ }
+                        PlayerMove::Move { .. } => { /* Ignore their move for now */ }
                     }
 
                     our_turn = match turn {

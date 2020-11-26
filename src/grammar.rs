@@ -21,12 +21,13 @@ peg::parser! {
             / "South" {Position::South}
 
         rule StateChange() -> EngineMessage
-            = "CHANGE" ";" move_or_swap: MoveSwap() ";" state: State() ";" turn: Turn() "\n"
-            {EngineMessage::StateChange{move_or_swap, state, turn}}
+            = "CHANGE" ";" player_move: PlayerMove() ";" state: State() ";" turn: Turn() "\n"
+            {EngineMessage::StateChange{player_move, state, turn}}
 
-        rule MoveSwap() -> MoveSwap
-            = n: Nat() {MoveSwap::Move{n: n - 1}}
-            / "SWAP" {MoveSwap::Swap}
+        rule PlayerMove() -> PlayerMove
+            // player moves are 1-based
+            = n: Nat() {PlayerMove::Move{n: n - 1}}
+            / "SWAP" {PlayerMove::Swap}
 
         rule State() -> BoardState
             = north: PlayerState() "," south: PlayerState()
@@ -45,18 +46,6 @@ peg::parser! {
         rule GameOver() -> EngineMessage
             = "END" "\n"
             {EngineMessage::GameOver}
-
-        /// Messages sent from the agent to the engine
-        pub rule AgentMessage() -> AgentMessage
-            = AgentMove() / AgentSwap()
-
-        rule AgentMove() -> AgentMessage
-            = "MOVE" ";" n: Nat() "\n"
-            {AgentMessage::Move{n}}
-
-        rule AgentSwap() -> AgentMessage
-            = "SWAP" "\n"
-            {AgentMessage::Swap}
     }
 }
 
@@ -96,7 +85,7 @@ mod test {
         test_engine_message(
             "CHANGE;SWAP;1,2,3,4,5,6,7,99,7,6,5,4,3,2,1,99;YOU\n",
             Ok(EngineMessage::StateChange {
-                move_or_swap: MoveSwap::Swap,
+                player_move: PlayerMove::Swap,
                 state: BoardState {
                     north: PlayerState {
                         pits: [1, 2, 3, 4, 5, 6, 7],
@@ -117,7 +106,7 @@ mod test {
         test_engine_message(
             "CHANGE;1;1,2,3,4,5,6,7,99,7,6,5,4,3,2,1,99;OPP\n",
             Ok(EngineMessage::StateChange {
-                move_or_swap: MoveSwap::Move { n: 1 },
+                player_move: PlayerMove::Move { n: 0 },
                 state: BoardState {
                     north: PlayerState {
                         pits: [1, 2, 3, 4, 5, 6, 7],
@@ -138,7 +127,7 @@ mod test {
         test_engine_message(
             "CHANGE;1;1,2,3,4,5,6,7,99,7,6,5,4,3,2,1,99;END\n",
             Ok(EngineMessage::StateChange {
-                move_or_swap: MoveSwap::Move { n: 1 },
+                player_move: PlayerMove::Move { n: 0 },
                 state: BoardState {
                     north: PlayerState {
                         pits: [1, 2, 3, 4, 5, 6, 7],
@@ -156,16 +145,4 @@ mod test {
 
     #[test]
     fn game_over() { test_engine_message("END\n", Ok(EngineMessage::GameOver)) }
-
-    #[track_caller]
-    fn test_agent_message(input: &str, expected: Result<AgentMessage, ParseError<LineCol>>) {
-        let got = ProtocolGrammar::AgentMessage(input);
-        assert_eq!(got, expected);
-    }
-
-    #[test]
-    fn agent_move() { test_agent_message("MOVE;10\n", Ok(AgentMessage::Move { n: 10 })) }
-
-    #[test]
-    fn agent_swap() { test_agent_message("SWAP\n", Ok(AgentMessage::Swap)) }
 }
