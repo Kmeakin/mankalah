@@ -106,7 +106,7 @@ mod test {
         test_engine_message(
             "CHANGE;1;1,2,3,4,5,6,7,99,7,6,5,4,3,2,1,99;OPP\n",
             Ok(EngineMessage::StateChange {
-                player_move: PlayerMove::Move { n: 1 },
+                player_move: PlayerMove::Move { n: 0 },
                 state: BoardState {
                     north: PlayerState {
                         pits: [1, 2, 3, 4, 5, 6, 7],
@@ -127,7 +127,7 @@ mod test {
         test_engine_message(
             "CHANGE;1;1,2,3,4,5,6,7,99,7,6,5,4,3,2,1,99;END\n",
             Ok(EngineMessage::StateChange {
-                player_move: PlayerMove::Move { n: 1 },
+                player_move: PlayerMove::Move { n: 0 },
                 state: BoardState {
                     north: PlayerState {
                         pits: [1, 2, 3, 4, 5, 6, 7],
@@ -145,16 +145,4 @@ mod test {
 
     #[test]
     fn game_over() { test_engine_message("END\n", Ok(EngineMessage::GameOver)) }
-
-    #[track_caller]
-    fn test_agent_message(input: &str, expected: Result<AgentMessage, ParseError<LineCol>>) {
-        let got = ProtocolGrammar::AgentMessage(input);
-        assert_eq!(got, expected);
-    }
-
-    #[test]
-    fn agent_move() { test_agent_message("MOVE;10\n", Ok(AgentMessage::Move { n: 10 })) }
-
-    #[test]
-    fn agent_swap() { test_agent_message("SWAP\n", Ok(AgentMessage::Swap)) }
 }

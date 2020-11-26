@@ -9,7 +9,7 @@ pub struct PlayerState {
 }
 
 impl PlayerState {
-    fn get_moves(&self, pie_rule_active: bool) -> PlayerMoveIterator {
+    fn moves_iter(&self, pie_rule_active: bool) -> PlayerMoveIterator {
         PlayerMoveIterator {
             pie_rule: pie_rule_active,
             state: *self,
@@ -110,7 +110,7 @@ mod test {
         };
 
         assert_eq!(
-            player_state.get_moves(true).collect::<Vec<PlayerMove>>(),
+            player_state.moves_iter(true).collect::<Vec<PlayerMove>>(),
             vec![
                 PlayerMove::Swap,
                 PlayerMove::Move { n: 0 },
@@ -132,7 +132,7 @@ mod test {
         };
 
         assert_eq!(
-            player_state.get_moves(false).collect::<Vec<PlayerMove>>(),
+            player_state.moves_iter(false).collect::<Vec<PlayerMove>>(),
             vec![]
         );
     }
@@ -144,7 +144,7 @@ mod test {
             pits: [0, 0, 4, 0, 2, 8, 0],
         };
         assert_eq!(
-            player_state.get_moves(false).collect::<Vec<PlayerMove>>(),
+            player_state.moves_iter(false).collect::<Vec<PlayerMove>>(),
             vec![
                 PlayerMove::Move { n: 2 },
                 PlayerMove::Move { n: 4 },
