@@ -25,7 +25,8 @@ peg::parser! {
             {EngineMessage::StateChange{player_move, state, turn}}
 
         rule PlayerMove() -> PlayerMove
-            = n: Nat() {PlayerMove::Move{n}}
+            // player moves are 1-based
+            = n: Nat() {PlayerMove::Move{n: n - 1}}
             / "SWAP" {PlayerMove::Swap}
 
         rule State() -> BoardState
@@ -45,18 +46,6 @@ peg::parser! {
         rule GameOver() -> EngineMessage
             = "END" "\n"
             {EngineMessage::GameOver}
-
-        /// Messages sent from the agent to the engine
-        pub rule AgentMessage() -> AgentMessage
-            = AgentMove() / AgentSwap()
-
-        rule AgentMove() -> AgentMessage
-            = "MOVE" ";" n: Nat() "\n"
-            {AgentMessage::Move{n}}
-
-        rule AgentSwap() -> AgentMessage
-            = "SWAP" "\n"
-            {AgentMessage::Swap}
     }
 }
 
