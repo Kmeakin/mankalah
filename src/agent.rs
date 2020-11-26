@@ -11,7 +11,7 @@ fn read_line() -> String {
 }
 
 fn send_move(chosen_move: PlayerMove) {
-    print!("{}", chosen_move.to_string());
+    println!("{}", chosen_move);
 }
 
 fn read_engine_message() -> EngineMessage {

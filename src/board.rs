@@ -1,4 +1,8 @@
-use std::ops::{Index, IndexMut};
+use std::{
+    fmt,
+    ops::{Index, IndexMut},
+};
+
 pub type Nat = u8;
 pub const PITS_PER_PLAYER: usize = 7;
 
@@ -56,11 +60,11 @@ pub enum PlayerMove {
     Swap,
 }
 
-impl ToString for PlayerMove {
-    fn to_string(&self) -> String {
+impl fmt::Display for PlayerMove {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            Self::Swap => "SWAP\n".into(),
-            Self::Move { n } => format!("MOVE;{}\n", n + 1),
+            Self::Swap => write!(f, "SWAP"),
+            Self::Move { n } => write!(f, "MOVE;{}", n + 1),
         }
     }
 }
