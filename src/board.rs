@@ -9,12 +9,22 @@ pub struct PlayerState {
 }
 
 impl PlayerState {
-    fn moves_iter(&self, pie_rule_active: bool) -> PlayerMoveIterator {
-        PlayerMoveIterator {
-            pie_rule: pie_rule_active,
-            state: *self,
-            index: 0,
+    /// Returns an iterator of the possible moves that can be made from this
+    /// PlayerState
+    fn moves_iter(&self, use_pie_rule: bool) -> impl Iterator<Item = PlayerMove> + '_ {
+        if use_pie_rule {
+            Some(PlayerMove::Swap)
+        } else {
+            None
         }
+        .into_iter()
+        .chain(self.pits.iter().enumerate().filter_map(|(idx, stones)| {
+            if *stones > 0 {
+                Some(PlayerMove::Move { n: idx as Nat })
+            } else {
+                None
+            }
+        }))
     }
 }
 
@@ -63,38 +73,6 @@ impl IndexMut<Position> for BoardState {
             Position::North => &mut self.north,
             Position::South => &mut self.south,
         }
-    }
-}
-
-struct PlayerMoveIterator {
-    pie_rule: bool,
-    state: PlayerState,
-    index: usize,
-}
-
-impl Iterator for PlayerMoveIterator {
-    type Item = PlayerMove;
-    fn next(&mut self) -> Option<PlayerMove> {
-        let possible_move = if self.pie_rule {
-            self.pie_rule = false;
-            PlayerMove::Swap
-        } else {
-            // Skip empty holes
-            loop {
-                if self.index >= PITS_PER_PLAYER {
-                    return None;
-                }
-                if self.state.pits[self.index] > 0 {
-                    break;
-                }
-                self.index += 1;
-            }
-            self.index += 1;
-            PlayerMove::Move {
-                n: (self.index - 1) as Nat,
-            }
-        };
-        Some(possible_move)
     }
 }
 
