@@ -32,3 +32,4 @@ impl IndexMut<Position> for BoardState {
         }
     }
 }
+

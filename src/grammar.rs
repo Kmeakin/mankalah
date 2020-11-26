@@ -72,7 +72,9 @@ mod test {
     }
 
     #[test]
-    fn test_new_match() {}
+    fn game_over() {
+        test_engine_message("END\n", Ok(EngineMessage::GameOver))
+    }
 
     #[track_caller]
     fn test_agent_message(input: &str, expected: Result<AgentMessage, ParseError<LineCol>>) {
@@ -81,8 +83,8 @@ mod test {
     }
 
     #[test]
-    fn test_agent_move() { test_agent_message("MOVE;10\n", Ok(AgentMessage::Move { n: 10 })) }
+    fn agent_move() { test_agent_message("MOVE;10\n", Ok(AgentMessage::Move { n: 10 })) }
 
     #[test]
-    fn test_agent_swap() { test_agent_message("SWAP\n", Ok(AgentMessage::Swap)) }
+    fn agent_swap() { test_agent_message("SWAP\n", Ok(AgentMessage::Swap)) }
 }
