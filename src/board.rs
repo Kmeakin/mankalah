@@ -1,14 +1,24 @@
-use crate::protocol::{MoveSwap, Nat, Position, PITS_PER_PLAYER};
+pub use crate::protocol::Position;
+use crate::protocol::{MoveSwap, Nat, PITS_PER_PLAYER};
 use std::ops::{Index, IndexMut};
 
-#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PlayerState {
     pub score: Nat,
     pub pits: [Nat; PITS_PER_PLAYER],
 }
 
+impl Default for PlayerState {
+    fn default() -> Self {
+        PlayerState {
+            score: 0,
+            pits: [7; PITS_PER_PLAYER],
+        }
+    }
+}
+
 impl PlayerState {
-    fn get_moves(&self, pie_rule_active: bool) -> PlayerMoveIterator {
+    pub fn get_moves(&self, pie_rule_active: bool) -> PlayerMoveIterator {
         PlayerMoveIterator {
             pie_rule: pie_rule_active,
             state: *self,
@@ -43,7 +53,8 @@ impl IndexMut<Position> for BoardState {
     }
 }
 
-struct PlayerMoveIterator {
+#[derive(Debug, Copy, Clone)]
+pub struct PlayerMoveIterator {
     pie_rule: bool,
     state: PlayerState,
     index: usize,
@@ -81,10 +92,7 @@ mod test {
 
     #[test]
     fn test_pie_rule() {
-        let player_state = PlayerState {
-            score: 0,
-            pits: [7; PITS_PER_PLAYER],
-        };
+        let player_state = PlayerState::default();
 
         assert_eq!(
             player_state.get_moves(true).collect::<Vec<MoveSwap>>(),

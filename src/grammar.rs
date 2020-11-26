@@ -25,7 +25,7 @@ peg::parser! {
             {EngineMessage::StateChange{move_or_swap, state, turn}}
 
         rule MoveSwap() -> MoveSwap
-            = n: Nat() {MoveSwap::Move{n}}
+            = n: Nat() {MoveSwap::Move{n: n - 1}}
             / "SWAP" {MoveSwap::Swap}
 
         rule State() -> BoardState

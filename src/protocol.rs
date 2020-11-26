@@ -34,7 +34,7 @@ impl ToString for MoveSwap {
     fn to_string(&self) -> String {
         match *self {
             Self::Swap => "SWAP\n".into(),
-            Self::Move { n } => format!("MOVE;{}\n", n),
+            Self::Move { n } => format!("MOVE;{}\n", n + 1),
         }
     }
 }
