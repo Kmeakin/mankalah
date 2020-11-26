@@ -9,14 +9,14 @@ pub enum EngineMessage {
         pos: Position,
     },
     StateChange {
-        move_or_swap: MoveSwap,
+        player_move: PlayerMove,
         state: BoardState,
         turn: Turn,
     },
     GameOver,
 }
 
-pub type MoveSwap = AgentMessage;
+pub type PlayerMove = AgentMessage;
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum AgentMessage {
     Move { n: Nat },
@@ -30,7 +30,7 @@ pub enum Position {
     South,
 }
 
-impl ToString for MoveSwap {
+impl ToString for PlayerMove {
     fn to_string(&self) -> String {
         match *self {
             Self::Swap => "SWAP\n".into(),

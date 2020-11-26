@@ -1,4 +1,4 @@
-use crate::protocol::{MoveSwap, Nat, Position, PITS_PER_PLAYER};
+use crate::protocol::*;
 use std::ops::{Index, IndexMut};
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
@@ -50,11 +50,11 @@ struct PlayerMoveIterator {
 }
 
 impl Iterator for PlayerMoveIterator {
-    type Item = MoveSwap;
-    fn next(&mut self) -> Option<MoveSwap> {
+    type Item = PlayerMove;
+    fn next(&mut self) -> Option<PlayerMove> {
         let possible_move = if self.pie_rule {
             self.pie_rule = false;
-            MoveSwap::Swap
+            PlayerMove::Swap
         } else {
             // Skip empty holes
             loop {
@@ -67,7 +67,7 @@ impl Iterator for PlayerMoveIterator {
                 self.index += 1;
             }
             self.index += 1;
-            MoveSwap::Move {
+            PlayerMove::Move {
                 n: (self.index - 1) as Nat,
             }
         };
@@ -87,16 +87,16 @@ mod test {
         };
 
         assert_eq!(
-            player_state.get_moves(true).collect::<Vec<MoveSwap>>(),
+            player_state.get_moves(true).collect::<Vec<PlayerMove>>(),
             vec![
-                MoveSwap::Swap,
-                MoveSwap::Move { n: 0 },
-                MoveSwap::Move { n: 1 },
-                MoveSwap::Move { n: 2 },
-                MoveSwap::Move { n: 3 },
-                MoveSwap::Move { n: 4 },
-                MoveSwap::Move { n: 5 },
-                MoveSwap::Move { n: 6 },
+                PlayerMove::Swap,
+                PlayerMove::Move { n: 0 },
+                PlayerMove::Move { n: 1 },
+                PlayerMove::Move { n: 2 },
+                PlayerMove::Move { n: 3 },
+                PlayerMove::Move { n: 4 },
+                PlayerMove::Move { n: 5 },
+                PlayerMove::Move { n: 6 },
             ]
         );
     }
@@ -109,7 +109,7 @@ mod test {
         };
 
         assert_eq!(
-            player_state.get_moves(false).collect::<Vec<MoveSwap>>(),
+            player_state.get_moves(false).collect::<Vec<PlayerMove>>(),
             vec![]
         );
     }
@@ -121,11 +121,11 @@ mod test {
             pits: [0, 0, 4, 0, 2, 8, 0],
         };
         assert_eq!(
-            player_state.get_moves(false).collect::<Vec<MoveSwap>>(),
+            player_state.get_moves(false).collect::<Vec<PlayerMove>>(),
             vec![
-                MoveSwap::Move { n: 2 },
-                MoveSwap::Move { n: 4 },
-                MoveSwap::Move { n: 5 },
+                PlayerMove::Move { n: 2 },
+                PlayerMove::Move { n: 4 },
+                PlayerMove::Move { n: 5 },
             ]
         );
     }

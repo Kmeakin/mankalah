@@ -21,12 +21,12 @@ peg::parser! {
             / "South" {Position::South}
 
         rule StateChange() -> EngineMessage
-            = "CHANGE" ";" move_or_swap: MoveSwap() ";" state: State() ";" turn: Turn() "\n"
-            {EngineMessage::StateChange{move_or_swap, state, turn}}
+            = "CHANGE" ";" player_move: PlayerMove() ";" state: State() ";" turn: Turn() "\n"
+            {EngineMessage::StateChange{player_move, state, turn}}
 
-        rule MoveSwap() -> MoveSwap
-            = n: Nat() {MoveSwap::Move{n}}
-            / "SWAP" {MoveSwap::Swap}
+        rule PlayerMove() -> PlayerMove
+            = n: Nat() {PlayerMove::Move{n}}
+            / "SWAP" {PlayerMove::Swap}
 
         rule State() -> BoardState
             = north: PlayerState() "," south: PlayerState()
@@ -96,7 +96,7 @@ mod test {
         test_engine_message(
             "CHANGE;SWAP;1,2,3,4,5,6,7,99,7,6,5,4,3,2,1,99;YOU\n",
             Ok(EngineMessage::StateChange {
-                move_or_swap: MoveSwap::Swap,
+                player_move: PlayerMove::Swap,
                 state: BoardState {
                     north: PlayerState {
                         pits: [1, 2, 3, 4, 5, 6, 7],
@@ -117,7 +117,7 @@ mod test {
         test_engine_message(
             "CHANGE;1;1,2,3,4,5,6,7,99,7,6,5,4,3,2,1,99;OPP\n",
             Ok(EngineMessage::StateChange {
-                move_or_swap: MoveSwap::Move { n: 1 },
+                player_move: PlayerMove::Move { n: 1 },
                 state: BoardState {
                     north: PlayerState {
                         pits: [1, 2, 3, 4, 5, 6, 7],
@@ -138,7 +138,7 @@ mod test {
         test_engine_message(
             "CHANGE;1;1,2,3,4,5,6,7,99,7,6,5,4,3,2,1,99;END\n",
             Ok(EngineMessage::StateChange {
-                move_or_swap: MoveSwap::Move { n: 1 },
+                player_move: PlayerMove::Move { n: 1 },
                 state: BoardState {
                     north: PlayerState {
                         pits: [1, 2, 3, 4, 5, 6, 7],
