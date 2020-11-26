@@ -52,6 +52,7 @@ impl Agent {
             self.swap_sides();
         }
         send_move(chosen_move);
+        self.first_move = false;
     }
 
     fn swap_sides(&mut self) {
