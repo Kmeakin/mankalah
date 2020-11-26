@@ -1,4 +1,4 @@
-use crate::protocol::{Nat, Position, PITS_PER_PLAYER, MoveSwap};
+use crate::protocol::{MoveSwap, Nat, Position, PITS_PER_PLAYER};
 use std::ops::{Index, IndexMut};
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
@@ -8,13 +8,13 @@ pub struct PlayerState {
 }
 
 impl PlayerState {
-  fn get_moves(&self, pie_rule_active: bool) -> PlayerMoveIterator {
-    PlayerMoveIterator {
-      pie_rule: pie_rule_active,
-      state: *self,
-      index: 0
+    fn get_moves(&self, pie_rule_active: bool) -> PlayerMoveIterator {
+        PlayerMoveIterator {
+            pie_rule: pie_rule_active,
+            state: *self,
+            index: 0,
+        }
     }
-  }
 }
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
@@ -44,75 +44,89 @@ impl IndexMut<Position> for BoardState {
 }
 
 struct PlayerMoveIterator {
-  pie_rule: bool,
-  state: PlayerState,
-  index: usize
+    pie_rule: bool,
+    state: PlayerState,
+    index: usize,
 }
 
 impl Iterator for PlayerMoveIterator {
-  type Item = MoveSwap;
-  fn next(&mut self) -> Option<MoveSwap> {
-    let possible_move = if self.pie_rule {
-      self.pie_rule = false;
-      MoveSwap::Swap
-    } else {
-      // Skip empty holes
-      loop {
-        if self.index >= PITS_PER_PLAYER {
-          return None;
-        }
-        if self.state.pits[self.index] > 0 {
-          break;
-        }
-        self.index += 1;
-      }
-      self.index += 1;
-      MoveSwap::Move {n: (self.index - 1) as Nat }
-    };
-    Some(possible_move)
-  }
+    type Item = MoveSwap;
+    fn next(&mut self) -> Option<MoveSwap> {
+        let possible_move = if self.pie_rule {
+            self.pie_rule = false;
+            MoveSwap::Swap
+        } else {
+            // Skip empty holes
+            loop {
+                if self.index >= PITS_PER_PLAYER {
+                    return None;
+                }
+                if self.state.pits[self.index] > 0 {
+                    break;
+                }
+                self.index += 1;
+            }
+            self.index += 1;
+            MoveSwap::Move {
+                n: (self.index - 1) as Nat,
+            }
+        };
+        Some(possible_move)
+    }
 }
 
 #[cfg(test)]
 mod test {
-  use super::*;
+    use super::*;
 
-  #[test]
-  fn test_pie_rule() {
-    let player_state = PlayerState{ score: 0, pits: [7; PITS_PER_PLAYER]};
+    #[test]
+    fn test_pie_rule() {
+        let player_state = PlayerState {
+            score: 0,
+            pits: [7; PITS_PER_PLAYER],
+        };
 
-    assert_eq!(
-      player_state.get_moves(true).collect::<Vec<MoveSwap>>(),
-      vec![
-        MoveSwap::Swap,
-        MoveSwap::Move{ n: 0 },
-        MoveSwap::Move{ n: 1 },
-        MoveSwap::Move{ n: 2 },
-        MoveSwap::Move{ n: 3 },
-        MoveSwap::Move{ n: 4 },
-        MoveSwap::Move{ n: 5 },
-        MoveSwap::Move{ n: 6 },
-      ]);
-  }
+        assert_eq!(
+            player_state.get_moves(true).collect::<Vec<MoveSwap>>(),
+            vec![
+                MoveSwap::Swap,
+                MoveSwap::Move { n: 0 },
+                MoveSwap::Move { n: 1 },
+                MoveSwap::Move { n: 2 },
+                MoveSwap::Move { n: 3 },
+                MoveSwap::Move { n: 4 },
+                MoveSwap::Move { n: 5 },
+                MoveSwap::Move { n: 6 },
+            ]
+        );
+    }
 
-  #[test]
-  fn test_no_possible_moves() {
-    let player_state = PlayerState{ score: 0, pits: [0; PITS_PER_PLAYER]};
+    #[test]
+    fn test_no_possible_moves() {
+        let player_state = PlayerState {
+            score: 0,
+            pits: [0; PITS_PER_PLAYER],
+        };
 
-    assert_eq!(
-      player_state.get_moves(false).collect::<Vec<MoveSwap>>(),
-      vec![]);
-  }
+        assert_eq!(
+            player_state.get_moves(false).collect::<Vec<MoveSwap>>(),
+            vec![]
+        );
+    }
 
-  #[test]
-  fn some_possible_moves() {
-    let player_state = PlayerState { score: 0, pits: [0, 0, 4, 0, 2, 8, 0]};
-    assert_eq!(
-      player_state.get_moves(false).collect::<Vec<MoveSwap>>(),
-      vec![
-        MoveSwap::Move{ n: 2 },
-        MoveSwap::Move{ n: 4 },
-        MoveSwap::Move{ n: 5 },
-      ]);
-  }
+    #[test]
+    fn some_possible_moves() {
+        let player_state = PlayerState {
+            score: 0,
+            pits: [0, 0, 4, 0, 2, 8, 0],
+        };
+        assert_eq!(
+            player_state.get_moves(false).collect::<Vec<MoveSwap>>(),
+            vec![
+                MoveSwap::Move { n: 2 },
+                MoveSwap::Move { n: 4 },
+                MoveSwap::Move { n: 5 },
+            ]
+        );
+    }
 }
