@@ -72,3 +72,47 @@ impl Iterator for PlayerMoveIterator {
     Some(possible_move)
   }
 }
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn test_pie_rule() {
+    let player_state = PlayerState{ score: 0, pits: [7; PITS_PER_PLAYER]};
+
+    assert_eq!(
+      player_state.get_moves(true).collect::<Vec<MoveSwap>>(),
+      vec![
+        MoveSwap::Swap,
+        MoveSwap::Move{ n: 0 },
+        MoveSwap::Move{ n: 1 },
+        MoveSwap::Move{ n: 2 },
+        MoveSwap::Move{ n: 3 },
+        MoveSwap::Move{ n: 4 },
+        MoveSwap::Move{ n: 5 },
+        MoveSwap::Move{ n: 6 },
+      ]);
+  }
+
+  #[test]
+  fn test_no_possible_moves() {
+    let player_state = PlayerState{ score: 0, pits: [0; PITS_PER_PLAYER]};
+
+    assert_eq!(
+      player_state.get_moves(false).collect::<Vec<MoveSwap>>(),
+      vec![]);
+  }
+
+  #[test]
+  fn some_possible_moves() {
+    let player_state = PlayerState { score: 0, pits: [0, 0, 4, 0, 2, 8, 0]};
+    assert_eq!(
+      player_state.get_moves(false).collect::<Vec<MoveSwap>>(),
+      vec![
+        MoveSwap::Move{ n: 2 },
+        MoveSwap::Move{ n: 4 },
+        MoveSwap::Move{ n: 5 },
+      ]);
+  }
+}
