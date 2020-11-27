@@ -6,6 +6,7 @@
 )]
 #![deny(bare_trait_objects)]
 
+pub mod agent;
 pub mod board;
 pub mod grammar;
 pub mod protocol;

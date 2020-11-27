@@ -2,16 +2,25 @@ use std::ops::{Index, IndexMut};
 pub type Nat = u8;
 pub const PITS_PER_PLAYER: usize = 7;
 
-#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PlayerState {
     pub score: Nat,
     pub pits: [Nat; PITS_PER_PLAYER],
 }
 
+impl Default for PlayerState {
+    fn default() -> Self {
+        PlayerState {
+            score: 0,
+            pits: [7; PITS_PER_PLAYER],
+        }
+    }
+}
+
 impl PlayerState {
     /// Returns an iterator of the possible moves that can be made from this
     /// PlayerState
-    fn moves_iter(&self, use_pie_rule: bool) -> impl Iterator<Item = PlayerMove> + '_ {
+    pub fn moves_iter(&self, use_pie_rule: bool) -> impl Iterator<Item = PlayerMove> + '_ {
         if use_pie_rule {
             Some(PlayerMove::Swap)
         } else {
@@ -82,10 +91,7 @@ mod test {
 
     #[test]
     fn test_pie_rule() {
-        let player_state = PlayerState {
-            score: 0,
-            pits: [7; PITS_PER_PLAYER],
-        };
+        let player_state = PlayerState::default();
 
         assert_eq!(
             player_state.moves_iter(true).collect::<Vec<PlayerMove>>(),
