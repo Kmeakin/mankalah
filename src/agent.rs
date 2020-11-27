@@ -41,10 +41,14 @@ impl Default for Agent {
 impl Agent {
     pub fn new() -> Self { Self::default() }
 
-    fn our_state(&self) -> PlayerState { self.state[self.position] }
+    pub fn our_state(&self) -> PlayerState { self.state[self.position] }
+
+    pub fn can_swap(&self) -> bool {
+      self.first_move && self.position == Position::North
+    }
 
     fn make_move(&mut self) {
-        let pie_rule_active = self.first_move && self.position == Position::North;
+        let pie_rule_active = self.can_swap();
         let chosen_move = self.our_state().moves_iter(pie_rule_active).next().unwrap();
         if let PlayerMove::Swap = chosen_move {
             self.swap_sides();
