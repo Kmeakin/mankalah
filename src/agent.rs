@@ -1,10 +1,9 @@
-use crate::{board::PlayerMove, grammar::ProtocolGrammar};
-use std::io::{BufRead, Write};
-
 use crate::{
-    board::{BoardState, PlayerState, Position},
+    board::{BoardState, PlayerMove, PlayerState, Position},
+    grammar::ProtocolGrammar,
     protocol::*,
 };
+use std::io::{BufRead, Write};
 
 fn read_line() -> String {
     let mut line = String::new();
@@ -34,14 +33,18 @@ pub struct Agent {
     first_move: bool,
 }
 
-impl Agent {
-    pub fn new() -> Self {
-        Agent {
+impl Default for Agent {
+    fn default() -> Self {
+        Self {
             position: Position::South,
             state: BoardState::default(),
             first_move: true,
         }
     }
+}
+
+impl Agent {
+    pub fn new() -> Self { Self::default() }
 
     fn our_state(&self) -> PlayerState { self.state[self.position] }
 
