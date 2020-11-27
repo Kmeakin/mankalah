@@ -3,7 +3,7 @@ use crate::{
     grammar::ProtocolGrammar,
     protocol::*,
 };
-use std::io::{BufRead, Write};
+use std::io::BufRead;
 
 fn read_line() -> String {
     let mut line = String::new();
@@ -13,12 +13,7 @@ fn read_line() -> String {
 }
 
 fn send_move(chosen_move: PlayerMove) {
-    let mut stdout = std::io::stdout();
-    stdout
-        .lock()
-        .write_all(chosen_move.to_string().as_bytes())
-        .unwrap();
-    stdout.flush().unwrap(); // just in case
+    print!("{}", chosen_move);
 }
 
 fn read_engine_message() -> EngineMessage {
