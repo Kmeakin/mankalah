@@ -2,10 +2,12 @@ use crate::{
     agent::Agent,
     board::{BoardState, Nat, PlayerMove, Position, PITS_PER_PLAYER},
 };
-use std::ops::Not;
+use std::{char::from_u32, ops::Not};
+
+const MAX_DEPTH: usize = 10;
 
 pub type Value = u32;
-pub trait Heuristic = FnMut(BoardState) -> Value;
+pub trait Heuristic = Fn(&BoardState) -> i8;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Mode {
@@ -35,6 +37,7 @@ North's score -> [x]                                        [x] <- South's score
 
 */
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum FinalLocation {
     SouthScore,
     NorthScore,
@@ -72,7 +75,7 @@ impl BoardState {
         }
     }
 
-    pub fn sow_seeds(&mut self, pos: Position, n: Nat) -> FinalLocation {
+    fn sow_seeds(&mut self, pos: Position, n: Nat) -> FinalLocation {
         let mut n = n as usize;
         let mut stones_left = self[pos].pits[n];
         self[pos].pits[n] = 0;
@@ -109,13 +112,14 @@ impl BoardState {
         let final_pit = final_pit as usize;
         if self[position].pits[final_pit] == 1 {
             // must have been 0 before
+            self[position].pits[final_pit] = 0;
             let captured = self[!position].pits[final_pit];
-            self[position].score += captured;
+            self[position].score += captured + 1;
             self[!position].pits[final_pit] = 0;
         }
     }
 
-    pub fn apply_move(&mut self, moove: PlayerMove, position: Position) -> (Self, Position) {
+    fn apply_move(&mut self, moove: PlayerMove, position: Position) -> (Self, Position) {
         match moove {
             PlayerMove::Move { n } => match (position, self.sow_seeds(position, n)) {
                 (Position::South, FinalLocation::SouthScore) => (*self, position),
@@ -134,7 +138,44 @@ impl BoardState {
         }
     }
 
-    fn child_boards(&mut self, position: Position) { todo!() }
+    fn child_boards(
+        &self,
+        position: Position,
+        can_swap: bool,
+    ) -> impl Iterator<Item = (BoardState, Position)> + '_ {
+        self[position]
+            .moves_iter(can_swap)
+            .map(move |player_move| self.clone().apply_move(player_move, position))
+    }
+
+    fn is_terminal(&self, pos: Position, can_swap: bool) -> Option<i8> {
+        match self[pos].moves_iter(can_swap).next() {
+            None => {
+                let our_score = self[pos].score;
+                let mut opp_score = self[!pos].score;
+                opp_score += self[!pos].pits.iter().sum::<u8>();
+                Some(our_score as i8 - opp_score as i8)
+            }
+            _ => None,
+        }
+    }
+
+    fn minimax(&self, h: &impl Heuristic, position: Position, can_swap: bool, depth: usize) -> i8 {
+        if let Some(payoff) = self.is_terminal(position, can_swap) {
+            payoff
+        } else if depth == MAX_DEPTH {
+            h(self)
+        } else {
+            let iter = self[position]
+                .moves_iter(can_swap)
+                .map(|player_move| self.clone().apply_move(player_move, position))
+                .map(|(board, position)| board.minimax(h, position, can_swap, depth + 1));
+            match position {
+                Position::North => iter.max().unwrap(),
+                Position::South => iter.min().unwrap(),
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -208,5 +249,98 @@ mod test {
                 }
             }
         )
+    }
+
+    #[test]
+    fn test_apply_move_capture() {
+        let mut board_state = BoardState {
+            north: PlayerState {
+                score: 0,
+                pits: [0, 7, 0, 0, 0, 0, 0],
+            },
+            south: PlayerState {
+                score: 0,
+                pits: [1, 0, 0, 0, 0, 0, 0],
+            },
+        };
+
+        board_state.apply_move(PlayerMove::Move { n: 0 }, Position::South);
+        assert_eq!(
+            board_state,
+            BoardState {
+                north: PlayerState {
+                    score: 0,
+                    pits: [0, 0, 0, 0, 0, 0, 0],
+                },
+                south: PlayerState {
+                    score: 8,
+                    pits: [0, 0, 0, 0, 0, 0, 0],
+                }
+            }
+        )
+    }
+
+    #[test]
+    fn example_play() {
+        let mut board_state = BoardState {
+            north: PlayerState {
+                score: 0,
+                pits: [2, 2, 2, 3, 0, 0, 1],
+            },
+            south: PlayerState {
+                score: 0,
+                pits: [2, 2, 2, 0, 0, 2, 3],
+            },
+        };
+
+        board_state.sow_seeds(Position::North, 0);
+        assert_eq!(
+            board_state,
+            BoardState {
+                north: PlayerState {
+                    pits: [0, 2, 2, 3, 0, 0, 1],
+                    score: 1,
+                },
+                south: PlayerState {
+                    score: 0,
+                    pits: [3, 2, 2, 0, 0, 2, 3],
+                }
+            }
+        );
+
+        assert_eq!(
+            board_state.sow_seeds(Position::South, 5),
+            FinalLocation::SouthScore
+        );
+        assert_eq!(
+            board_state,
+            BoardState {
+                north: PlayerState {
+                    pits: [0, 2, 2, 3, 0, 0, 1],
+                    score: 1,
+                },
+                south: PlayerState {
+                    score: 1,
+                    pits: [3, 2, 2, 0, 0, 0, 4],
+                }
+            }
+        );
+
+        assert_eq!(
+            board_state.apply_move(PlayerMove::Move { n: 1 }, Position::South),
+            (
+                BoardState {
+                    north: PlayerState {
+                        pits: [0, 2, 2, 0, 0, 0, 1],
+                        score: 1,
+                    },
+                    south: PlayerState {
+                        score: 5,
+                        pits: [3, 0, 3, 0, 0, 0, 4],
+                    }
+                },
+                Position::North
+            )
+        );
     }
 }
