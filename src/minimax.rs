@@ -46,7 +46,7 @@ pub enum FinalLocation {
 }
 
 impl BoardState {
-    fn clockwise_iter(
+    fn counter_clockwise_iter(
         &mut self,
         position: Position,
         n: usize,
@@ -82,7 +82,7 @@ impl BoardState {
         n += 1;
         debug_assert!(stones_left > 0);
         loop {
-            for (idx, pit) in self.clockwise_iter(pos, n) {
+            for (idx, pit) in self.counter_clockwise_iter(pos, n) {
                 *pit += 1;
                 if stones_left <= 1 {
                     return match pos {
@@ -120,22 +120,23 @@ impl BoardState {
     }
 
     fn apply_move(&mut self, moove: PlayerMove, position: Position) -> (Self, Position) {
-        match moove {
+        let end_position = match moove {
             PlayerMove::Move { n } => match (position, self.sow_seeds(position, n)) {
-                (Position::South, FinalLocation::SouthScore) => (*self, position),
-                (Position::North, FinalLocation::NorthScore) => (*self, position),
+                (Position::South, FinalLocation::SouthScore)
+                | (Position::North, FinalLocation::NorthScore) => position,
                 (Position::South, FinalLocation::South(n))
                 | (Position::North, FinalLocation::North(n)) => {
                     self.try_capture(position, n);
-                    (*self, !position)
+                    !position
                 }
-                (_, _) => (*self, !position),
+                (_, _) => !position,
             },
             PlayerMove::Swap => {
                 std::mem::swap(&mut self.north, &mut self.south);
-                (*self, position)
+                position
             }
-        }
+        };
+        (*self, end_position)
     }
 
     fn child_boards(
