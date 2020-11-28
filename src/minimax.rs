@@ -2,7 +2,7 @@ use crate::{
     agent::Agent,
     board::{BoardState, Nat, PlayerMove, Position, PITS_PER_PLAYER},
 };
-use std::{char::from_u32, ops::Not};
+use std::ops::Not;
 
 const MAX_DEPTH: usize = 10;
 
@@ -45,66 +45,104 @@ pub enum FinalLocation {
     South(Nat),
 }
 
-impl BoardState {
-    fn counter_clockwise_iter(
-        &mut self,
-        position: Position,
-        n: usize,
-    ) -> Box<dyn Iterator<Item = (usize, &mut u8)> + '_> {
-        debug_assert!(n <= PITS_PER_PLAYER);
-        match position {
-            Position::South => Box::new(
-                self.south
-                    .pits
-                    .iter_mut()
-                    .chain(std::iter::once(&mut self.south.score))
-                    .chain(self.north.pits.iter_mut().rev())
-                    .enumerate()
-                    .skip(n),
-            ),
-            Position::North => Box::new(
-                self.north
-                    .pits
-                    .iter_mut()
-                    .rev()
-                    .chain(std::iter::once(&mut self.north.score))
-                    .chain(self.south.pits.iter_mut())
-                    .enumerate()
-                    .skip(PITS_PER_PLAYER - n + 1),
-            ),
+#[derive(Debug)]
+struct SowSeedsIterator {
+    board: BoardState,
+    position: Position,
+    index: isize,
+}
+
+impl SowSeedsIterator {
+    const IPITS_PER_PLAYER: isize = PITS_PER_PLAYER as isize;
+    const SOUTH_SCORE: isize = SowSeedsIterator::IPITS_PER_PLAYER + 1;
+    const NORTH_SCORE: isize = 0;
+
+    fn new(board: BoardState, pos: Position, start_at: Nat) -> SowSeedsIterator {
+        // start_at is 1 based for which pit the player picks
+        // zero is used when the sowing loops around
+        let start_index = if start_at == 0 {
+            1
+        } else {
+            (start_at as isize) + if pos == Position::South { 1 } else { -1 }
+        };
+        SowSeedsIterator {
+            board,
+            position: pos,
+            index: start_index,
         }
     }
 
+    fn our_side(&self) -> bool { self.index >= 1 && self.index <= Self::IPITS_PER_PLAYER }
+    fn their_side(&self) -> bool { self.index <= -1 && self.index >= -Self::IPITS_PER_PLAYER }
+
+    fn to_location(&self, index: isize) -> FinalLocation {
+        match (self.position, index) {
+            (Position::South, 1..=7) => FinalLocation::South((index - 1) as Nat),
+            (Position::South, Self::SOUTH_SCORE) => FinalLocation::SouthScore,
+            (Position::South, -7..=-1) => FinalLocation::North((index - 1) as Nat),
+            (Position::North, 1..=7) => FinalLocation::North((index - 1) as Nat),
+            (Position::North, Self::NORTH_SCORE) => FinalLocation::NorthScore,
+            (Position::North, -7..=-1) => FinalLocation::South((index - 1) as Nat),
+            (_, _) => unreachable!(),
+        }
+    }
+}
+
+impl Iterator for SowSeedsIterator {
+    type Item = FinalLocation;
+    fn next(&mut self) -> Option<Self::Item> {
+        let visited = self.index;
+        match self.position {
+            Position::South => {
+                if self.our_side() {
+                    self.board.south.pits[(visited - 1) as usize] += 1;
+                    self.index += 1;
+                } else if self.index == Self::IPITS_PER_PLAYER + 1 {
+                    self.board.south.score += 1;
+                    self.index = -7;
+                } else if self.their_side() {
+                    self.board.north.pits[(visited.abs() - 1) as usize] += 1;
+                    self.index += 1;
+                } else {
+                    return None;
+                }
+            }
+            Position::North => {
+                if self.our_side() {
+                    self.board.north.pits[(visited - 1) as usize] += 1;
+                    self.index -= 1;
+                } else if self.index == 0 {
+                    self.board.north.score += 1;
+                    self.index = -1;
+                } else if self.their_side() {
+                    self.board.south.pits[(visited.abs() - 1) as usize] += 1;
+                    self.index -= 1;
+                } else {
+                    return None;
+                }
+            }
+        }
+        Some(self.to_location(visited))
+    }
+}
+
+impl BoardState {
     fn sow_seeds(&mut self, pos: Position, n: Nat) -> FinalLocation {
-        let mut n = n as usize;
-        let mut stones_left = self[pos].pits[n];
-        self[pos].pits[n] = 0;
-        n += 1;
-        debug_assert!(stones_left > 0);
+        let mut n = n;
+        let mut stones_left = self[pos].pits[n as usize];
+        self[pos].pits[n as usize] = 0;
+        n += 1; // max n a 1 based index for the seed sow iterator
         loop {
-            for (idx, pit) in self.counter_clockwise_iter(pos, n) {
-                *pit += 1;
-                if stones_left <= 1 {
-                    return match pos {
-                        Position::North => match idx {
-                            0..=6 => FinalLocation::North((PITS_PER_PLAYER - 1 - idx) as Nat),
-                            7 => FinalLocation::NorthScore,
-                            _ => FinalLocation::South(idx as Nat),
-                        },
-                        Position::South => match idx {
-                            0..=6 => FinalLocation::South(idx as Nat),
-                            7 => FinalLocation::SouthScore,
-                            _ => FinalLocation::North((idx - PITS_PER_PLAYER - 1) as Nat),
-                        },
-                    };
+            let mut sow_iter = SowSeedsIterator::new(*self, pos, n);
+            while let Some(pit) = sow_iter.next() {
+                // as making mutable iterators without unsafe is impossible
+                *self = sow_iter.board;
+                if stones_left == 1 {
+                    return pit;
                 }
                 stones_left -= 1;
             }
-            n = if pos == Position::South {
-                0
-            } else {
-                PITS_PER_PLAYER + 1
-            };
+            n = 0;
         }
     }
 
