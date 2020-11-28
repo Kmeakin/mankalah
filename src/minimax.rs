@@ -59,7 +59,7 @@ impl SowSeedsIterator {
 
     fn new(board: BoardState, pos: Position, start_at: Nat) -> SowSeedsIterator {
         // start_at is 1 based for which pit the player picks
-        // zero is used when the sowing loops around
+        // zero is used when the sowing loops around (meaning we don't skip any pits)
         let start_index = if start_at == 0 {
             1
         } else {
@@ -131,17 +131,18 @@ impl BoardState {
         let mut n = n;
         let mut stones_left = self[pos].pits[n as usize];
         self[pos].pits[n as usize] = 0;
-        n += 1; // max n a 1 based index for the seed sow iterator
+        n += 1; // make n a 1 based index for the seed sow iterator (only for first cycle)
         loop {
             let mut sow_iter = SowSeedsIterator::new(*self, pos, n);
             while let Some(pit) = sow_iter.next() {
-                // as making mutable iterators without unsafe is impossible
+                // mutate self here (since making a mutable iterator is too hard/unsafe?)
                 *self = sow_iter.board;
                 if stones_left == 1 {
                     return pit;
                 }
                 stones_left -= 1;
             }
+            // zero for all others (meaning no pits skipped)
             n = 0;
         }
     }
