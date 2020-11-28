@@ -43,9 +43,7 @@ impl Agent {
 
     pub fn our_state(&self) -> PlayerState { self.state[self.position] }
 
-    pub fn can_swap(&self) -> bool {
-      self.first_move && self.position == Position::North
-    }
+    pub fn can_swap(&self) -> bool { self.first_move && self.position == Position::North }
 
     fn make_move(&mut self) {
         let pie_rule_active = self.can_swap();

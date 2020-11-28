@@ -10,5 +10,5 @@
 pub mod agent;
 pub mod board;
 pub mod grammar;
-pub mod protocol;
 pub mod minimax;
+pub mod protocol;
