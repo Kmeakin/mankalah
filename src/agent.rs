@@ -47,7 +47,19 @@ impl Agent {
 
     fn make_move(&mut self) {
         let pie_rule_active = self.can_swap();
-        let chosen_move = self.our_state().moves_iter(pie_rule_active).next().unwrap();
+        let state = self.our_state();
+        let pos = self.position;
+        let potential_moves = state.moves_iter(pie_rule_active).map(|the_move| {
+            let (board, pos) = self.state.apply_move(the_move, self.position);
+            let score = board.minimax(&crate::heuristics::current_score, pos, pie_rule_active, 0);
+            (the_move, score)
+        });
+        let (chosen_move, _score) = match pos {
+            Position::South => potential_moves.max_by_key(|&(_, score)| score),
+            Position::North => potential_moves.min_by_key(|&(_, score)| score),
+        }
+        .unwrap();
+
         if let PlayerMove::Swap = chosen_move {
             self.swap_sides();
         }
