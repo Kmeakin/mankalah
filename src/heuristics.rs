@@ -24,6 +24,26 @@ impl Heuristic for CurrentScore {
 /// opportunites for yourself.
 fn offensive_capture(board: &BoardState) -> Score { todo!() }
 
+pub enum OffensiveCapture {}
+
+#[cfg(FALSE)]
+impl Heuristic for OffensiveCapture {
+    fn goodness(board: &BoardState) -> Score {
+        let mut north_captures = 0;
+        let mut south_captures = 0;
+        for (idx, n_stones) in board[Position::North].pits.iter().enumerate() {
+            if let Some(n_opposite) = board[Position::South].pits.get(idx + n_stones) {
+                north_captures += n_opposite;
+            }
+        }
+        for (idx, n_stones) in board[Position::North].pits.iter().enumerate() {
+            if let Some(n_opposite) = board[Position::South].pits.get(idx + n_stones) {
+                south_captures += n_opposite;
+            }
+        }
+    }
+}
+
 /// Defensive Capture: incentivise moves that reduce the number of capture
 /// opportunies for your opponent.
 fn defensive_capture(board: &BoardState) -> Score { todo!() }

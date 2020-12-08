@@ -5,12 +5,11 @@
     clippy::all
 )]
 #![deny(bare_trait_objects)]
-#![feature(trait_alias)]
 
 pub mod agent;
+pub mod alpha_beta;
 pub mod board;
 pub mod grammar;
 pub mod heuristics;
 pub mod minimax;
 pub mod protocol;
-pub mod alpha_beta;

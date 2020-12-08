@@ -4,7 +4,7 @@ use crate::{
 };
 use std::ops::Not;
 
-pub const MAX_DEPTH: usize = 14;
+pub const MAX_DEPTH: usize = 13;
 
 pub type Value = u32;
 
@@ -151,8 +151,13 @@ impl BoardState {
         }
     }
 
-    pub fn apply_move(&mut self, moove: PlayerMove, position: Position) -> (Self, Position) {
-        let end_position = match moove {
+    pub fn apply_move(
+        &mut self,
+        moove: PlayerMove,
+        position: Position,
+        mut first_move: bool,
+    ) -> (Self, Position, bool) {
+        let mut end_position = match moove {
             PlayerMove::Move { n } => match (position, self.sow_seeds(position, n)) {
                 (Position::South, FinalLocation::SouthScore)
                 | (Position::North, FinalLocation::NorthScore) => position,
@@ -168,20 +173,34 @@ impl BoardState {
                 position
             }
         };
-        (*self, end_position)
+        if first_move {
+            if position == Position::South {
+                end_position = Position::North;
+            } else {
+                first_move = false;
+            }
+        }
+
+        (*self, end_position, first_move)
     }
 
-    pub fn do_move(&self, moove: PlayerMove, position: Position) -> (Self, Position) {
-        self.clone().apply_move(moove, position)
+    pub fn do_move(
+        &self,
+        moove: PlayerMove,
+        position: Position,
+        first_move: bool,
+    ) -> (Self, Position, bool) {
+        self.clone().apply_move(moove, position, first_move)
     }
 
     pub fn child_boards(
         &self,
         position: Position,
-    ) -> impl Iterator<Item = (BoardState, Position)> + '_ {
+        is_first_move: bool,
+    ) -> impl Iterator<Item = (BoardState, Position, bool)> + '_ {
         self[position]
             .moves_iter()
-            .map(move |player_move| self.do_move(player_move, position))
+            .map(move |player_move| self.do_move(player_move, position, is_first_move))
     }
 
     /// Return Some(score) if board state is terminal
@@ -209,10 +228,11 @@ impl BoardState {
         } else if depth >= MAX_DEPTH {
             H::goodness(self)
         } else {
+            // FIXME! First move stuff
             let iter = self[position]
                 .moves_iter()
-                .map(|player_move| self.clone().apply_move(player_move, position))
-                .map(|(board, child_position)| board.minimax::<H>(child_position, depth + 1));
+                .map(|player_move| self.clone().apply_move(player_move, position, false))
+                .map(|(board, child_position, _)| board.minimax::<H>(child_position, depth + 1));
 
             match position {
                 Position::South => iter.max().unwrap(), // player 1
