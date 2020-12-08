@@ -1,21 +1,12 @@
-use crate::heuristics::Heuristic;
 use crate::{
-    agent::Agent,
     board::{BoardState, Nat, PlayerMove, Position, PITS_PER_PLAYER},
-    heuristics::Score
+    heuristics::{Heuristic, Score},
 };
 use std::ops::Not;
 
-const MAX_DEPTH: usize = 10;
+pub const MAX_DEPTH: usize = 14;
 
 pub type Value = u32;
-
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum Mode {
-    Max,
-    Min,
-}
 
 impl Not for Position {
     type Output = Position;
@@ -180,45 +171,49 @@ impl BoardState {
         (*self, end_position)
     }
 
-    fn child_boards(
+    pub fn do_move(&self, moove: PlayerMove, position: Position) -> (Self, Position) {
+        self.clone().apply_move(moove, position)
+    }
+
+    pub fn child_boards(
         &self,
         position: Position,
-        can_swap: bool,
     ) -> impl Iterator<Item = (BoardState, Position)> + '_ {
         self[position]
-            .moves_iter(can_swap)
-            .map(move |player_move| self.clone().apply_move(player_move, position))
+            .moves_iter()
+            .map(move |player_move| self.do_move(player_move, position))
     }
 
     /// Return Some(score) if board state is terminal
     /// Else None
-    fn is_terminal(&self,pos: Position, can_swap: bool) -> Option<Score> {
-        match self[pos].moves_iter(can_swap).next() {
+    pub fn is_terminal(&self, pos: Position) -> Option<Score> {
+        match self[pos].moves_iter().next() {
             None => {
                 let our_score = self[pos].score as i8;
                 let mut opp_score = self[!pos].score as i8;
                 opp_score += self[!pos].pits.iter().sum::<u8>() as i8;
                 let (p1_score, p2_score) = match pos {
-                    Position::South => (our_score,opp_score),
-                    Position::North => (opp_score,our_score),
+                    Position::South => (our_score, opp_score),
+                    Position::North => (opp_score, our_score),
                 };
-                Some(p1_score-p2_score)
+                Some(p1_score - p2_score)
             }
             Some(_) => None,
         }
     }
 
-    pub fn minimax(&self, h: &impl Heuristic, position: Position, can_swap: bool, depth: usize) -> Score {
-        dbg!(depth);
-        if let Some(payoff) = self.is_terminal(position, can_swap) {
+    pub fn minimax<H: Heuristic>(&self, position: Position, depth: usize) -> Score {
+        // dbg!(depth);
+        if let Some(payoff) = self.is_terminal(position) {
             payoff
-        } else if depth == MAX_DEPTH {
-            h(self)
+        } else if depth >= MAX_DEPTH {
+            H::goodness(self)
         } else {
             let iter = self[position]
-                .moves_iter(can_swap)
+                .moves_iter()
                 .map(|player_move| self.clone().apply_move(player_move, position))
-                .map(|(board, position)| board.minimax(h, position, can_swap, depth + 1));
+                .map(|(board, child_position)| board.minimax::<H>(child_position, depth + 1));
+
             match position {
                 Position::South => iter.max().unwrap(), // player 1
                 Position::North => iter.min().unwrap(), // player 2

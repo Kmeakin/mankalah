@@ -1,11 +1,23 @@
 use crate::board::{BoardState, Nat, PlayerMove, Position, PITS_PER_PLAYER};
 
-pub trait Heuristic = Fn(&BoardState) -> Score;
 pub type Score = i8;
 
+pub trait Heuristic {
+    fn goodness(board: &BoardState) -> Score;
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum CurrentScore {}
+
 /// Difference between mancalas (score)
-pub fn current_score(board: &BoardState) -> Score {
-    board[Position::South].score as Score - board[Position::North].score as Score
+impl Heuristic for CurrentScore {
+    fn goodness(board: &BoardState) -> Score {
+        let mut south_seeds = board[Position::South].score as Score;
+        let mut north_seeds = board[Position::North].score as Score;
+        south_seeds += board[Position::South].pits.iter().sum::<u8>() as i8;
+        north_seeds += board[Position::North].pits.iter().sum::<u8>() as i8;
+        south_seeds - north_seeds
+    }
 }
 
 /// Offensive Capture: incentivise choosing boards with more capture

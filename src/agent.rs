@@ -1,6 +1,7 @@
 use crate::{
     board::{BoardState, PlayerMove, PlayerState, Position},
     grammar::ProtocolGrammar,
+    heuristics::{Heuristic, Score},
     protocol::*,
 };
 use std::io::BufRead;
@@ -38,6 +39,27 @@ impl Default for Agent {
     }
 }
 
+pub trait Evaluator<H: Heuristic> {
+    fn eval(board: BoardState, pos: Position, depth: usize) -> Score;
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum MiniMax {}
+
+impl<H: Heuristic> Evaluator<H> for MiniMax {
+    fn eval(board: BoardState, pos: Position, depth: usize) -> Score { board.minimax::<H>(pos, depth) }
+}
+#[derive(Debug, Copy, Clone)]
+pub enum AlphaBeta {}
+
+impl<H: Heuristic> Evaluator<H> for AlphaBeta {
+    fn eval(board: BoardState, pos: Position, depth: usize) -> Score {
+        let alpha = Score::MIN;
+        let beta = Score::MAX;
+        board.alpha_beta::<H>(depth, alpha, beta, pos)
+    }
+}
+
 impl Agent {
     pub fn new() -> Self { Self::default() }
 
@@ -45,26 +67,68 @@ impl Agent {
 
     pub fn can_swap(&self) -> bool { self.first_move && self.position == Position::North }
 
-    fn make_move(&mut self) {
-        let pie_rule_active = self.can_swap();
-        let state = self.our_state();
-        let pos = self.position;
-        let potential_moves = state.moves_iter(pie_rule_active).map(|the_move| {
-            let (board, pos) = self.state.apply_move(the_move, self.position);
-            let score = board.minimax(&crate::heuristics::current_score, pos, pie_rule_active, 0);
-            (the_move, score)
-        });
-        let (chosen_move, _score) = match pos {
-            Position::South => potential_moves.max_by_key(|&(_, score)| score),
-            Position::North => potential_moves.min_by_key(|&(_, score)| score),
-        }
-        .unwrap();
+    fn do_first_move<H: Heuristic, E: Evaluator<H>>(&mut self) {
+        let player_state = self.our_state();
+        let potential_moves = player_state.moves_iter();
+        let (chosen_move, score) = match self.position {
+            Position::South => {
+                potential_moves
+                    .map(|the_move| {
+                        // Our move: next pos ALWAYS north
+                        let (board, _next_pos) = self.state.do_move(the_move, Position::South);
 
+                        // North's first moves
+                        let norths_moves = self.state[Position::North]
+                            .moves_iter()
+                            .chain(Some(PlayerMove::Swap));
+
+                        let norths_score = norths_moves
+                            .map(|north_move| {
+                                let (child_board, next_pos) =
+                                    board.do_move(north_move, Position::North);
+                                E::eval(child_board, next_pos, 0)
+                            })
+                            .min()
+                            .unwrap();
+                        (the_move, norths_score)
+                    })
+                    .max_by_key(|&(the_move, score)| score)
+                    .unwrap()
+            }
+            Position::North => potential_moves
+                .chain(Some(PlayerMove::Swap))
+                .map(|the_move| {
+                    let (board, next_pos) = self.state.do_move(the_move, Position::North);
+                    (the_move, E::eval(board, next_pos, 0))
+                })
+                .min_by_key(|&(the_move, score)| dbg!(score))
+                .unwrap(),
+        };
         if let PlayerMove::Swap = chosen_move {
             self.swap_sides();
         }
         send_move(chosen_move);
-        self.first_move = false;
+    }
+
+    fn make_move<H: Heuristic, E: Evaluator<H>>(&mut self) {
+        if self.first_move {
+            self.do_first_move::<H, E>();
+            self.first_move = false;
+            return;
+        }
+
+        let player_state = self.our_state();
+        let potential_moves = player_state.moves_iter().map(|the_move| {
+            let (board, next_pos) = self.state.do_move(the_move, self.position);
+            let score = E::eval(board, next_pos, 0);
+            (the_move, score)
+        });
+        let (chosen_move, _score) = match self.position {
+            Position::South => potential_moves.max_by_key(|&(_, score)| score),
+            Position::North => potential_moves.min_by_key(|&(_, score)| score),
+        }
+        .unwrap();
+        send_move(chosen_move);
     }
 
     fn swap_sides(&mut self) {
@@ -74,13 +138,13 @@ impl Agent {
         }
     }
 
-    pub fn run(&mut self) {
+    pub fn run<H: Heuristic, E: Evaluator<H>>(&mut self) {
         let mut message = read_engine_message();
         match message {
             EngineMessage::NewMatch { pos } => {
                 self.position = pos;
                 if pos == Position::South {
-                    self.make_move();
+                    self.make_move::<H, E>();
                 }
             }
             EngineMessage::GameOver => {
@@ -120,7 +184,7 @@ impl Agent {
                 _ => unreachable!(),
             }
             if our_turn {
-                self.make_move();
+                self.make_move::<H, E>();
             }
         }
     }

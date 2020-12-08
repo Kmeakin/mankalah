@@ -10,6 +10,7 @@
 pub mod agent;
 pub mod board;
 pub mod grammar;
+pub mod heuristics;
 pub mod minimax;
 pub mod protocol;
-pub mod heuristics;
+pub mod alpha_beta;
