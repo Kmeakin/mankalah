@@ -36,18 +36,15 @@ impl BoardState {
                 }
                 Position::North => {
                     let mut value = Score::MAX;
-                    // if first_move {
-                    // dbg!(first_move);
-                    // }
                     let boards = self.child_boards(pos, first_move);
                     let boards = if first_move {
-                        boards.chain(Some(self.do_move(
+                      boards.chain(Some(self.do_move(
                             PlayerMove::Swap,
                             Position::North,
                             first_move,
                         )))
                     } else {
-                        boards.chain(None)
+                      boards.chain(None)
                     };
 
                     for (child, next_pos, next_first_move) in boards {

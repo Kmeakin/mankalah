@@ -116,7 +116,14 @@ impl Agent {
 
     fn make_move<H: Heuristic, E: Evaluator<H>>(&mut self) {
         let player_state = self.our_state();
-        let potential_moves = player_state.moves_iter().map(|the_move| {
+        let moves =  player_state.moves_iter();
+        let moves = if self.first_move && self.position == Position::North {
+          moves.chain(Some(PlayerMove::Swap))
+        } else {
+          moves.chain(None)
+        };
+
+        let potential_moves = moves.map(|the_move| {
             let (board, next_pos, next_first_move) =
                 self.state.do_move(the_move, self.position, self.first_move);
             let score = E::eval(board, next_pos, 0, next_first_move);

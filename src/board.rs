@@ -4,6 +4,7 @@ use std::{
 };
 pub type Nat = u8;
 pub const PITS_PER_PLAYER: usize = 7;
+pub const TOTAL_PITS: usize = 2*(PITS_PER_PLAYER + 1);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PlayerState {

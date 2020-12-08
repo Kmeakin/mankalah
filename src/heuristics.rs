@@ -1,4 +1,4 @@
-use crate::board::{BoardState, Nat, PlayerMove, Position, PITS_PER_PLAYER};
+use crate::board::{BoardState, Nat, PlayerMove, Position, PITS_PER_PLAYER, TOTAL_PITS};
 
 pub type Score = i8;
 
@@ -20,37 +20,58 @@ impl Heuristic for CurrentScore {
     }
 }
 
-/// Offensive Capture: incentivise choosing boards with more capture
-/// opportunites for yourself.
-fn offensive_capture(board: &BoardState) -> Score { todo!() }
-
+#[derive(Debug, Copy, Clone)]
 pub enum OffensiveCapture {}
 
-#[cfg(FALSE)]
+/// Offensive Capture: incentivise choosing boards with more capture
+/// opportunites for yourself.
 impl Heuristic for OffensiveCapture {
     fn goodness(board: &BoardState) -> Score {
-        let mut north_captures = 0;
-        let mut south_captures = 0;
-        for (idx, n_stones) in board[Position::North].pits.iter().enumerate() {
-            if let Some(n_opposite) = board[Position::South].pits.get(idx + n_stones) {
-                north_captures += n_opposite;
+        fn count_captures(board: &BoardState, pos: Position) -> Score {
+            let mut n_captures = 0;
+            for (idx, n_stones) in board[pos]
+                .pits
+                .iter()
+                .enumerate()
+                .filter(|(_, n_stones)| **n_stones > 0)
+            {
+                if let Some(n_opposite) = board[!pos].pits.get(idx + (*n_stones as usize % TOTAL_PITS) as usize)
+                {
+                    n_captures += n_opposite + 1; // plus one for capturing seed
+                }
             }
+            n_captures as i8
         }
-        for (idx, n_stones) in board[Position::North].pits.iter().enumerate() {
-            if let Some(n_opposite) = board[Position::South].pits.get(idx + n_stones) {
-                south_captures += n_opposite;
-            }
-        }
+        count_captures(board, Position::South) - count_captures(board, Position::North)
     }
 }
 
-/// Defensive Capture: incentivise moves that reduce the number of capture
-/// opportunies for your opponent.
-fn defensive_capture(board: &BoardState) -> Score { todo!() }
+#[derive(Debug, Copy, Clone)]
+pub enum DefensiveCapture {}
+
+/// Offensive Capture: incentivise choosing boards with less capture
+/// opportunites for opponent.
+impl Heuristic for DefensiveCapture {
+    fn goodness(board: &BoardState) -> Score { -OffensiveCapture::goodness(board) }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum ChainingCapture {}
 
 /// Chaining Potential: incentivise moves that repeat your turn.
-fn chaining_capture(board: &BoardState) -> Score { todo!() }
+impl Heuristic for ChainingCapture {
+    fn goodness(board: &BoardState) -> Score { todo!() }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum Hoarding {}
 
 /// Hoarding Stategy: look to pick boards that maximise the number of seeds in
 /// the 2 pits closest to our mancala.
-fn hoarding_strategy(board: &BoardState) -> Score { todo!() }
+impl Heuristic for Hoarding {
+    fn goodness(board: &BoardState) -> Score {
+        let n_south = board[Position::South].pits.iter().rev().take(2).sum::<u8>();
+        let n_north = board[Position::North].pits.iter().rev().take(2).sum::<u8>();
+        n_south as i8 - n_north as i8
+    }
+}
