@@ -1,5 +1,6 @@
 use crate::{
     board::{BoardState, PlayerMove, PlayerState, Position},
+    eval::Evaluator,
     grammar::ProtocolGrammar,
     heuristics::{Heuristic, Score},
     protocol::*,
@@ -39,29 +40,6 @@ impl Default for Agent {
     }
 }
 
-pub trait Evaluator<H: Heuristic> {
-    fn eval(board: BoardState, pos: Position, depth: usize, first_move: bool) -> Score;
-}
-
-#[derive(Debug, Copy, Clone)]
-pub enum MiniMax {}
-
-impl<H: Heuristic> Evaluator<H> for MiniMax {
-    fn eval(board: BoardState, pos: Position, depth: usize, first_move: bool) -> Score {
-        board.minimax::<H>(pos, depth)
-    }
-}
-#[derive(Debug, Copy, Clone)]
-pub enum AlphaBeta {}
-
-impl<H: Heuristic> Evaluator<H> for AlphaBeta {
-    fn eval(board: BoardState, pos: Position, depth: usize, first_move: bool) -> Score {
-        let alpha = Score::MIN;
-        let beta = Score::MAX;
-        board.alpha_beta::<H>(depth, alpha, beta, pos, first_move)
-    }
-}
-
 impl Agent {
     pub fn new() -> Self { Self::default() }
 
@@ -71,11 +49,11 @@ impl Agent {
 
     fn make_move<H: Heuristic, E: Evaluator<H>>(&mut self) {
         let player_state = self.our_state();
-        let moves =  player_state.moves_iter();
+        let moves = player_state.moves_iter();
         let moves = if self.first_move && self.position == Position::North {
-          moves.chain(Some(PlayerMove::Swap))
+            moves.chain(Some(PlayerMove::Swap))
         } else {
-          moves.chain(None)
+            moves.chain(None)
         };
 
         let potential_moves = moves.map(|the_move| {

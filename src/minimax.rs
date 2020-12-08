@@ -220,26 +220,6 @@ impl BoardState {
             Some(_) => None,
         }
     }
-
-    pub fn minimax<H: Heuristic>(&self, position: Position, depth: usize) -> Score {
-        // dbg!(depth);
-        if let Some(payoff) = self.is_terminal(position) {
-            payoff
-        } else if depth >= MAX_DEPTH {
-            H::goodness(self)
-        } else {
-            // FIXME! First move stuff
-            let iter = self[position]
-                .moves_iter()
-                .map(|player_move| self.clone().apply_move(player_move, position, false))
-                .map(|(board, child_position, _)| board.minimax::<H>(child_position, depth + 1));
-
-            match position {
-                Position::South => iter.max().unwrap(), // player 1
-                Position::North => iter.min().unwrap(), // player 2
-            }
-        }
-    }
 }
 
 #[cfg(test)]

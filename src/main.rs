@@ -1,6 +1,7 @@
 use clap::{App, Arg, SubCommand};
 use mankalah::{
-    agent::{Agent, AlphaBeta, MiniMax},
+    agent::Agent,
+    eval::{AlphaBeta, MiniMax},
     heuristics::CurrentScore,
 };
 

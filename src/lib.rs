@@ -7,8 +7,8 @@
 #![deny(bare_trait_objects)]
 
 pub mod agent;
-pub mod alpha_beta;
 pub mod board;
+pub mod eval;
 pub mod grammar;
 pub mod heuristics;
 pub mod minimax;
