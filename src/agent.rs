@@ -69,51 +69,6 @@ impl Agent {
 
     pub fn can_swap(&self) -> bool { self.first_move && self.position == Position::North }
 
-    // fn do_first_move<H: Heuristic, E: Evaluator<H>>(&mut self) {
-    //     let player_state = self.our_state();
-    //     let potential_moves = player_state.moves_iter();
-    //     let (chosen_move, score) = match self.position {
-    //         Position::South => {
-    //             potential_moves
-    //                 .map(|the_move| {
-    //                     // Our move: next pos ALWAYS north
-    //                     let (board, _next_pos) = self.state.do_move(the_move,
-    // Position::South);
-
-    //                     // North's first moves
-    //                     let norths_moves = self.state[Position::North]
-    //                         .moves_iter()
-    //                         .chain(Some(PlayerMove::Swap));
-
-    //                       E::eval(board, pos: Position::North, first_move)
-    //                     let norths_score = norths_moves
-    //                         .map(|north_move| {
-    //                             let (child_board, next_pos) =
-    //                                 board.do_move(north_move, Position::North);
-    //                             E::eval(child_board, next_pos, 0)
-    //                         })
-    //                         .min()
-    //                         .unwrap();
-    //                     (the_move, norths_score)
-    //                 })
-    //                 .max_by_key(|&(the_move, score)| score)
-    //                 .unwrap()
-    //         }
-    //         Position::North => potential_moves
-    //             .chain(Some(PlayerMove::Swap))
-    //             .map(|the_move| {
-    //                 let (board, next_pos) = self.state.do_move(the_move,
-    // Position::North);                 (the_move, E::eval(board, next_pos, 0))
-    //             })
-    //             .min_by_key(|&(the_move, score)| dbg!(score))
-    //             .unwrap(),
-    //     };
-    //     if let PlayerMove::Swap = chosen_move {
-    //         self.swap_sides();
-    //     }
-    //     send_move(chosen_move);
-    // }
-
     fn make_move<H: Heuristic, E: Evaluator<H>>(&mut self) {
         let player_state = self.our_state();
         let moves =  player_state.moves_iter();

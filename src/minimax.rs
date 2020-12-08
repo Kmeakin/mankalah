@@ -4,7 +4,7 @@ use crate::{
 };
 use std::ops::Not;
 
-pub const MAX_DEPTH: usize = 13;
+pub const MAX_DEPTH: usize = 10;
 
 pub type Value = u32;
 

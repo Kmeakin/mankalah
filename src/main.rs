@@ -25,7 +25,7 @@ fn main() {
     // let depth = args.value_of("depth");
     let mut agent = Agent::new();
     match (args.value_of("heuristic"), args.value_of("search")) {
-        // (Some("current-score"), Some("minimax")) => agent.run::<CurrentScore, MiniMax>(),
+        (Some("current-score"), Some("minimax")) => agent.run::<CurrentScore, MiniMax>(),
         (Some("current-score"), Some("alpha-beta")) => agent.run::<CurrentScore, AlphaBeta>(),
         _ => unreachable!(),
     }
