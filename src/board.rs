@@ -23,20 +23,14 @@ impl Default for PlayerState {
 impl PlayerState {
     /// Returns an iterator of the possible moves that can be made from this
     /// PlayerState
-    pub fn moves_iter(&self, use_pie_rule: bool) -> impl Iterator<Item = PlayerMove> + '_ {
-        if use_pie_rule {
-            Some(PlayerMove::Swap)
-        } else {
-            None
-        }
-        .into_iter()
-        .chain(self.pits.iter().enumerate().filter_map(|(idx, stones)| {
+    pub fn moves_iter(&self) -> impl Iterator<Item = PlayerMove> + '_ {
+        self.pits.iter().enumerate().filter_map(|(idx, stones)| {
             if *stones > 0 {
                 Some(PlayerMove::Move { n: idx as Nat })
             } else {
                 None
             }
-        }))
+        })
     }
 }
 
