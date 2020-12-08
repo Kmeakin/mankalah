@@ -1,10 +1,10 @@
-use std::cmp;
-
 use crate::{
     board::{BoardState, PlayerMove, Position},
     heuristics::{Heuristic, Score},
-    minimax::MAX_DEPTH,
 };
+use std::cmp;
+
+pub const MAX_DEPTH: usize = 10;
 
 pub trait Evaluator<H: Heuristic> {
     fn eval(board: BoardState, pos: Position, depth: usize, first_move: bool) -> Score;

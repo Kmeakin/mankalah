@@ -11,5 +11,4 @@ pub mod board;
 pub mod eval;
 pub mod grammar;
 pub mod heuristics;
-pub mod minimax;
 pub mod protocol;
