@@ -14,6 +14,7 @@
 // [ ] heuristic weights
 
 pub mod agent;
+pub mod benchmark;
 pub mod board;
 pub mod eval;
 pub mod grammar;
