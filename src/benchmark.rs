@@ -1,14 +1,46 @@
-use std::{convert::TryInto, process::Command};
+#![feature(format_args_capture)]
 
-fn main() { benchmark(1, [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]) }
+use std::{fmt, process::Command};
 
-fn benchmark(depth: usize, weights: [f32; 6]) {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum Winner {
+    Draw,
+    North,
+    South,
+}
+
+impl fmt::Display for Winner {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{:?}", self) }
+}
+
+#[derive(Debug, Copy, Clone)]
+struct BenchmarkData {
+    winner: Winner,
+    score: i32,
+    depth: usize,
+}
+
+fn main() {
+    println!("Depth|Winner|Score");
+    println!("-----|-----|-----");
+    for depth in 0..50 {
+        let BenchmarkData {
+            score,
+            depth,
+            winner,
+        } = benchmark(depth, [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+        println!("{depth}|{winner}|{score}");
+    }
+}
+
+fn benchmark(depth: usize, weights: [f32; 6]) -> BenchmarkData {
     let output = Command::new("java")
         .arg("-jar")
         .arg("ManKalah.jar")
         .arg("java -jar MKRefAgent.jar")
         .arg(format!(
-            "cargo run --release --bin mankalah -- --search=alpha-beta --weights {}",
+            "cargo run --release --bin mankalah -- --search=alpha-beta --depth={} --weights {}",
+            depth,
             weights
                 .iter()
                 .map(|w| format!("{:?}", w))
@@ -20,59 +52,30 @@ fn benchmark(depth: usize, weights: [f32; 6]) {
     let stderr = String::from_utf8(output.stderr).unwrap();
     let stderr = stderr.lines().collect::<Vec<_>>();
     let len = stderr.len();
+    let winner_str = stderr[len - 6];
 
-    let winner = stderr[len - 6];
-    assert!(winner.starts_with("WINNER: "));
-    let winner_score = stderr[len - 5];
-    assert!(winner_score.starts_with("SCORE: "));
+    let winner = if winner_str.starts_with("DRAW") {
+        Winner::Draw
+    } else if winner_str.starts_with("WINNER: Player 1") {
+        Winner::North
+    } else if winner_str.starts_with("WINNER: Player 2") {
+        Winner::South
+    } else {
+        unreachable!()
+    };
 
-    let player2 = stderr[len - 3];
-    assert!(player2.starts_with("Player 2 "));
-    let player1 = stderr[len - 2];
-    assert!(player1.starts_with("Player 1 "));
+    let winner_score_str = stderr[len - 5];
+    let winner_score: i32 = winner_score_str["SCORE: ".len()..].parse().unwrap();
 
-    let p2_pits = stderr[len - 8].split_whitespace().collect::<Vec<_>>();
-    let p2_score: usize = p2_pits[p2_pits.len() - 1].parse().unwrap();
+    let score = if winner == Winner::North {
+        -winner_score
+    } else {
+        winner_score
+    };
 
-    let p1_pits = stderr[len - 9].split_whitespace().collect::<Vec<_>>();
-    let p1_score: usize = p1_pits[0].parse().unwrap();
-
-    let p1_moves: usize = player1.split(":").collect::<Vec<_>>()[1]
-        .split_whitespace()
-        .collect::<Vec<_>>()[0]
-        .parse()
-        .unwrap();
-    let p1_time_per_move: usize = player1.split(":").collect::<Vec<_>>()[1]
-        .split_whitespace()
-        .collect::<Vec<_>>()[2]
-        .parse()
-        .unwrap();
-    let p2_moves: usize = player2.split(":").collect::<Vec<_>>()[1]
-        .split_whitespace()
-        .collect::<Vec<_>>()[0]
-        .parse()
-        .unwrap();
-    let p2_time_per_move: usize = player2.split(":").collect::<Vec<_>>()[1]
-        .split_whitespace()
-        .collect::<Vec<_>>()[2]
-        .parse()
-        .unwrap();
-
-    println!(
-        r#"
-player 1 score: {} ({} moves, {}ms per move)
-player 2 score: {} ({} moves, {}ms per move)
-{}
-{}
-{}"#,
-        p1_score,
-        p1_moves,
-        p1_time_per_move,
-        p2_score,
-        p2_moves,
-        p2_time_per_move,
-        winner_score,
-        player1,
-        player2
-    );
+    BenchmarkData {
+        winner,
+        score,
+        depth,
+    }
 }
