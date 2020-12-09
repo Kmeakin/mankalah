@@ -7,6 +7,7 @@ use crate::heuristics::Score;
 pub type Nat = u8;
 pub const PITS_PER_PLAYER: usize = 7;
 pub const TOTAL_PITS: usize = 2 * (PITS_PER_PLAYER + 1);
+use ordered_float::OrderedFloat;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PlayerState {
@@ -262,11 +263,20 @@ impl BoardState {
     pub fn child_boards(
         &self,
         position: Position,
-        is_first_move: bool,
+        first_move: bool,
     ) -> impl Iterator<Item = (BoardState, Position, bool)> + '_ {
-        self[position]
+        let boards = self[position]
             .moves_iter()
-            .map(move |player_move| self.do_move(player_move, position, is_first_move))
+            .map(move |player_move| self.do_move(player_move, position, first_move));
+        if first_move && position == Position::North {
+            boards.chain(Some(self.do_move(
+                PlayerMove::Swap,
+                Position::North,
+                first_move,
+            )))
+        } else {
+            boards.chain(None)
+        }
     }
 
     /// Return Some(score) if board state is terminal
@@ -281,7 +291,7 @@ impl BoardState {
                     Position::South => (our_score, opp_score),
                     Position::North => (opp_score, our_score),
                 };
-                Some(p1_score - p2_score)
+                Some(OrderedFloat((p1_score - p2_score) as f32))
             }
             Some(_) => None,
         }

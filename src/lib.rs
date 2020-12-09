@@ -6,6 +6,13 @@
 )]
 #![deny(bare_trait_objects)]
 
+// TODOS:
+// [x] more heuristics
+// [ ] parralelism
+// [ ] benchmarking script to detect regressions
+// [ ] presentation
+// [ ] heuristic weights
+
 pub mod agent;
 pub mod board;
 pub mod eval;

@@ -1,35 +1,63 @@
 use crate::{
     board::{BoardState, PlayerMove, Position},
-    heuristics::{Heuristic, Score},
+    heuristics::{weighted_heuristic, Score, Weights},
 };
 use std::cmp;
+use ordered_float::OrderedFloat;
 
-pub const MAX_DEPTH: usize = 10;
-
-pub trait Evaluator<H: Heuristic> {
-    fn eval(board: BoardState, pos: Position, depth: usize, first_move: bool) -> Score;
+pub trait Evaluator {
+    fn eval(
+        board: &BoardState,
+        pos: Position,
+        depth: usize,
+        first_move: bool,
+        max_depth: usize,
+        weights: Weights,
+    ) -> Score;
 }
 
 #[derive(Debug, Copy, Clone)]
 pub enum MiniMax {}
 
-impl<H: Heuristic> Evaluator<H> for MiniMax {
-    fn eval(board: BoardState, pos: Position, depth: usize, _first_move: bool) -> Score {
-        minimax::<H>(board, pos, depth)
+impl Evaluator for MiniMax {
+    fn eval(
+        board: &BoardState,
+        pos: Position,
+        depth: usize,
+        first_move: bool,
+        max_depth: usize,
+        weights: Weights,
+    ) -> Score {
+        minimax(board, pos, depth, first_move, max_depth, weights)
     }
 }
 
-fn minimax<H: Heuristic>(board: BoardState, position: Position, depth: usize) -> Score {
+fn minimax(
+    board: &BoardState,
+    position: Position,
+    depth: usize,
+    first_move: bool,
+    max_depth: usize,
+    weights: Weights,
+) -> Score {
     if let Some(payoff) = board.is_terminal(position) {
         payoff
-    } else if depth >= MAX_DEPTH {
-        H::goodness(&board)
+    } else if depth >= max_depth {
+        weighted_heuristic(weights, board)
     } else {
         // FIXME! First move stuff
-        let iter = board[position]
-            .moves_iter()
-            .map(|player_move| board.clone().apply_move(player_move, position, false))
-            .map(|(board, child_position, _)| minimax::<H>(board, child_position, depth + 1));
+        let iter = board.child_boards(position, first_move).map(
+            |(board, child_position, next_first_move)| {
+                minimax(
+                    &board,
+                    child_position,
+                    depth + 1,
+                    next_first_move,
+                    max_depth,
+                    weights,
+                )
+            },
+        );
 
         match position {
             Position::South => iter.max().unwrap(), // player 1
@@ -41,34 +69,54 @@ fn minimax<H: Heuristic>(board: BoardState, position: Position, depth: usize) ->
 #[derive(Debug, Copy, Clone)]
 pub enum AlphaBeta {}
 
-impl<H: Heuristic> Evaluator<H> for AlphaBeta {
-    fn eval(board: BoardState, pos: Position, depth: usize, first_move: bool) -> Score {
-        let alpha = Score::MIN;
-        let beta = Score::MAX;
-        alpha_beta::<H>(&board, depth, alpha, beta, pos, first_move)
+impl Evaluator for AlphaBeta {
+    fn eval(
+        board: &BoardState,
+        pos: Position,
+        depth: usize,
+        first_move: bool,
+        max_depth: usize,
+        weights: Weights,
+    ) -> Score {
+        let alpha = OrderedFloat(-f32::INFINITY);
+        let beta = OrderedFloat(-f32::INFINITY);
+        alpha_beta(
+            &board, depth, alpha, beta, pos, first_move, max_depth, weights,
+        )
     }
 }
 
-fn alpha_beta<H: Heuristic>(
+fn alpha_beta(
     board: &BoardState,
     depth: usize,
     mut alpha: Score,
     mut beta: Score,
     pos: Position,
     first_move: bool,
+    max_depth: usize,
+    weights: Weights,
 ) -> Score {
     if let Some(payoff) = board.is_terminal(pos) {
         payoff
-    } else if depth >= MAX_DEPTH {
-        H::goodness(board)
+    } else if depth >= max_depth {
+        weighted_heuristic(weights, board)
     } else {
         match pos {
             Position::South => {
-                let mut value = Score::MIN;
+                let mut value = OrderedFloat(-f32::INFINITY);
                 for (child, next_pos, next_fist_move) in board.child_boards(pos, first_move) {
                     value = cmp::max(
                         value,
-                        alpha_beta::<H>(board, depth + 1, alpha, beta, next_pos, next_fist_move),
+                        alpha_beta(
+                            board,
+                            depth + 1,
+                            alpha,
+                            beta,
+                            next_pos,
+                            next_fist_move,
+                            max_depth,
+                            weights,
+                        ),
                     );
                     alpha = cmp::max(alpha, value);
                     if alpha >= beta {
@@ -78,22 +126,20 @@ fn alpha_beta<H: Heuristic>(
                 value
             }
             Position::North => {
-                let mut value = Score::MAX;
-                let boards = board.child_boards(pos, first_move);
-                let boards = if first_move {
-                    boards.chain(Some(board.do_move(
-                        PlayerMove::Swap,
-                        Position::North,
-                        first_move,
-                    )))
-                } else {
-                    boards.chain(None)
-                };
-
-                for (child, next_pos, next_first_move) in boards {
+                let mut value = OrderedFloat(f32::INFINITY);
+                for (child, next_pos, next_first_move) in board.child_boards(pos, first_move) {
                     value = cmp::min(
                         value,
-                        alpha_beta::<H>(&child, depth + 1, alpha, beta, next_pos, next_first_move),
+                        alpha_beta(
+                            &child,
+                            depth + 1,
+                            alpha,
+                            beta,
+                            next_pos,
+                            next_first_move,
+                            max_depth,
+                            weights,
+                        ),
                     );
                     beta = cmp::min(beta, value);
                     if beta <= alpha {

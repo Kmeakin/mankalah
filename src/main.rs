@@ -2,8 +2,9 @@ use clap::{App, Arg};
 use mankalah::{
     agent::Agent,
     eval::{AlphaBeta, MiniMax},
-    heuristics::CurrentScore,
+    heuristics::Weights,
 };
+use std::{convert::TryInto, str::FromStr};
 
 fn main() {
     let args = App::new("Mankalah")
@@ -16,18 +17,23 @@ fn main() {
                 .default_value("alpha-beta"),
         )
         .arg(
-            Arg::with_name("heuristic")
-                .long("heuristic")
-                .possible_values(&["current-score"])
-                .default_value("current-score"),
+            Arg::with_name("weights")
+                .long("weights")
+                .number_of_values(6),
         )
-        // .arg(Arg::with_name("depth").long("depth").default_value("10"))
+        .arg(Arg::with_name("depth").long("depth").default_value("10"))
         .get_matches();
-    // let depth = args.value_of("depth");
+    let depth: usize = args.value_of("depth").unwrap().parse().unwrap();
+    let weights: Vec<f32> = args
+        .values_of("weights")
+        .unwrap()
+        .map(|w| f32::from_str(w).unwrap())
+        .collect();
+    let weights: Weights = weights.try_into().unwrap();
     let mut agent = Agent::new();
-    match (args.value_of("heuristic"), args.value_of("search")) {
-        (Some("current-score"), Some("minimax")) => agent.run::<CurrentScore, MiniMax>(),
-        (Some("current-score"), Some("alpha-beta")) => agent.run::<CurrentScore, AlphaBeta>(),
+    match args.value_of("search") {
+        Some("minimax") => agent.run::<MiniMax>(depth, weights),
+        Some("alpha-beta") => agent.run::<AlphaBeta>(depth, weights),
         _ => unreachable!(),
     }
 }

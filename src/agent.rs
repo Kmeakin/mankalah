@@ -1,10 +1,4 @@
-use crate::{
-    board::{BoardState, PlayerMove, PlayerState, Position},
-    eval::Evaluator,
-    grammar::ProtocolGrammar,
-    heuristics::{Heuristic, Score},
-    protocol::*,
-};
+use crate::{board::{BoardState, PlayerMove, PlayerState, Position}, eval::Evaluator, grammar::ProtocolGrammar, heuristics::{Score, Weights}, protocol::*};
 use std::io::BufRead;
 
 fn read_line() -> String {
@@ -47,10 +41,10 @@ impl Agent {
 
     pub fn can_swap(&self) -> bool { self.first_move && self.position == Position::North }
 
-    fn make_move<H: Heuristic, E: Evaluator<H>>(&mut self) {
+    fn make_move<E: Evaluator>(&mut self, max_depth: usize, weights: Weights) {
         let player_state = self.our_state();
         let moves = player_state.moves_iter();
-        let moves = if self.first_move && self.position == Position::North {
+        let moves = if self.can_swap() {
             moves.chain(Some(PlayerMove::Swap))
         } else {
             moves.chain(None)
@@ -59,7 +53,7 @@ impl Agent {
         let potential_moves = moves.map(|the_move| {
             let (board, next_pos, next_first_move) =
                 self.state.do_move(the_move, self.position, self.first_move);
-            let score = E::eval(board, next_pos, 0, next_first_move);
+            let score = E::eval(&board, next_pos, 0, next_first_move, max_depth, weights);
             (the_move, score)
         });
         let (chosen_move, _score) = match self.position {
@@ -81,13 +75,13 @@ impl Agent {
         }
     }
 
-    pub fn run<H: Heuristic, E: Evaluator<H>>(&mut self) {
+    pub fn run<E: Evaluator>(&mut self, max_depth: usize, weights: Weights) {
         let mut message = read_engine_message();
         match message {
             EngineMessage::NewMatch { pos } => {
                 self.position = pos;
                 if pos == Position::South {
-                    self.make_move::<H, E>();
+                    self.make_move::<E>(max_depth, weights);
                 }
             }
             EngineMessage::GameOver => {
@@ -127,7 +121,7 @@ impl Agent {
                 _ => unreachable!(),
             }
             if our_turn {
-                self.make_move::<H, E>();
+                self.make_move::<E>(max_depth, weights);
             }
         }
     }
