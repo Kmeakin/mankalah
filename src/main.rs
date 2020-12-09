@@ -17,15 +17,16 @@ fn main() {
                 .default_value("alpha-beta"),
         )
         .arg(
-            Arg::with_name("weights")
+            Arg::with_name("weight")
                 .long("weights")
-                .number_of_values(6),
+                .number_of_values(6)
+                .required(true),
         )
         .arg(Arg::with_name("depth").long("depth").default_value("10"))
         .get_matches();
     let depth: usize = args.value_of("depth").unwrap().parse().unwrap();
     let weights: Vec<f32> = args
-        .values_of("weights")
+        .values_of("weight")
         .unwrap()
         .map(|w| f32::from_str(w).unwrap())
         .collect();
