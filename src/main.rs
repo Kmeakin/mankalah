@@ -22,7 +22,7 @@ fn main() {
                 .number_of_values(6)
                 .required(true),
         )
-        .arg(Arg::with_name("depth").long("depth").default_value("10"))
+        .arg(Arg::with_name("depth").long("depth").takes_value(true).required(true))
         .get_matches();
     let depth: usize = args.value_of("depth").unwrap().parse().unwrap();
     let weights: Vec<f32> = args

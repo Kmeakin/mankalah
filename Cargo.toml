@@ -10,6 +10,7 @@ edition = "2018"
 peg = "0.6.3"
 clap = "2.33.3"
 ordered-float = "2.0.1"
+log = "0.4.11"
 
 [[bin]]
 name = "benchmark"

@@ -53,7 +53,7 @@ impl Agent {
         let potential_moves = moves.map(|the_move| {
             let (board, next_pos, next_first_move) =
                 self.state.do_move(the_move, self.position, self.first_move);
-            let score = E::eval(&board, next_pos, 0, next_first_move, max_depth, weights);
+            let score = E::eval(board, next_pos, 0, next_first_move, max_depth, weights);
             (the_move, score)
         });
         let (chosen_move, _score) = match self.position {

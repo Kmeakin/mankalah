@@ -7,7 +7,7 @@ use ordered_float::OrderedFloat;
 
 pub trait Evaluator {
     fn eval(
-        board: &BoardState,
+        board: BoardState,
         pos: Position,
         depth: usize,
         first_move: bool,
@@ -21,7 +21,7 @@ pub enum MiniMax {}
 
 impl Evaluator for MiniMax {
     fn eval(
-        board: &BoardState,
+        board: BoardState,
         pos: Position,
         depth: usize,
         first_move: bool,
@@ -33,7 +33,7 @@ impl Evaluator for MiniMax {
 }
 
 fn minimax(
-    board: &BoardState,
+    board: BoardState,
     position: Position,
     depth: usize,
     first_move: bool,
@@ -43,13 +43,12 @@ fn minimax(
     if let Some(payoff) = board.is_terminal(position) {
         payoff
     } else if depth >= max_depth {
-        weighted_heuristic(weights, board)
+        weighted_heuristic(weights, &board)
     } else {
-        // FIXME! First move stuff
         let iter = board.child_boards(position, first_move).map(
             |(board, child_position, next_first_move)| {
                 minimax(
-                    &board,
+                    board,
                     child_position,
                     depth + 1,
                     next_first_move,
@@ -71,7 +70,7 @@ pub enum AlphaBeta {}
 
 impl Evaluator for AlphaBeta {
     fn eval(
-        board: &BoardState,
+        board: BoardState,
         pos: Position,
         depth: usize,
         first_move: bool,
@@ -79,15 +78,15 @@ impl Evaluator for AlphaBeta {
         weights: Weights,
     ) -> Score {
         let alpha = OrderedFloat(-f32::INFINITY);
-        let beta = OrderedFloat(-f32::INFINITY);
+        let beta = OrderedFloat(f32::INFINITY);
         alpha_beta(
-            &board, depth, alpha, beta, pos, first_move, max_depth, weights,
+            board, depth, alpha, beta, pos, first_move, max_depth, weights,
         )
     }
 }
 
 fn alpha_beta(
-    board: &BoardState,
+    board: BoardState,
     depth: usize,
     mut alpha: Score,
     mut beta: Score,
@@ -99,7 +98,7 @@ fn alpha_beta(
     if let Some(payoff) = board.is_terminal(pos) {
         payoff
     } else if depth >= max_depth {
-        weighted_heuristic(weights, board)
+        weighted_heuristic(weights, &board)
     } else {
         match pos {
             Position::South => {
@@ -108,7 +107,7 @@ fn alpha_beta(
                     value = cmp::max(
                         value,
                         alpha_beta(
-                            board,
+                            child,
                             depth + 1,
                             alpha,
                             beta,
@@ -131,7 +130,7 @@ fn alpha_beta(
                     value = cmp::min(
                         value,
                         alpha_beta(
-                            &child,
+                            child,
                             depth + 1,
                             alpha,
                             beta,
