@@ -5,11 +5,12 @@
     clippy::all
 )]
 #![deny(bare_trait_objects)]
+#![feature(format_args_capture)]
 
 // TODOS:
 // [x] more heuristics
 // [ ] parralelism
-// [ ] benchmarking script to detect regressions
+// [x] benchmarking script to detect regressions
 // [ ] presentation
 // [ ] heuristic weights
 
