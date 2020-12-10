@@ -2,12 +2,11 @@ use crate::board::{BoardState, Position, TOTAL_PITS};
 use ordered_float::OrderedFloat;
 
 pub type Score = OrderedFloat<f32>;
-pub const NUM_HEURISTICS: usize = 6;
+pub const NUM_HEURISTICS: usize = 5;
 pub const HEURISTICS: [fn(&BoardState) -> i8; NUM_HEURISTICS] = [
     current_score,
     offensive_capture,
     defensive_capture,
-    offensive_capture,
     chaining_potential,
     hoarding,
 ];

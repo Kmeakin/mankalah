@@ -19,7 +19,7 @@ fn main() {
         .arg(
             Arg::with_name("weight")
                 .long("weights")
-                .number_of_values(6)
+                .number_of_values(5)
                 .required(true),
         )
         .arg(
