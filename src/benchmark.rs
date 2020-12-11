@@ -28,12 +28,12 @@ fn main() {
             score,
             depth,
             winner,
-        } = benchmark(depth, [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+        } = benchmark(depth, [0.89, 0.39, 0.48, 0.58, 0.08]);
         println!("{depth}|{winner}|{score}");
     }
 }
 
-fn benchmark(depth: usize, weights: [f32; 6]) -> BenchmarkData {
+fn benchmark(depth: usize, weights: [f32; 5]) -> BenchmarkData {
     let output = Command::new("java")
         .arg("-jar")
         .arg("ManKalah.jar")

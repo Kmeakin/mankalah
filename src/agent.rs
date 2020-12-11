@@ -1,5 +1,6 @@
 use crate::{board::{BoardState, PlayerMove, PlayerState, Position}, eval::Evaluator, grammar::ProtocolGrammar, heuristics::{Score, Weights}, protocol::*};
 use std::io::BufRead;
+use std::time::{Duration, Instant};
 
 fn read_line() -> String {
     let mut line = String::new();
@@ -41,26 +42,42 @@ impl Agent {
 
     pub fn can_swap(&self) -> bool { self.first_move && self.position == Position::North }
 
+
+    fn get_move<E: Evaluator>(&self, max_depth: usize, weights: Weights) -> PlayerMove {
+      let player_state = self.our_state();
+      let moves = player_state.moves_iter();
+      let moves = if self.can_swap() {
+          moves.chain(Some(PlayerMove::Swap))
+      } else {
+          moves.chain(None)
+      };
+
+      let potential_moves = moves.map(|the_move| {
+          let (board, next_pos, next_first_move) =
+              self.state.do_move(the_move, self.position, self.first_move);
+          let score = E::eval(board, next_pos, 0, next_first_move, max_depth, weights);
+          (the_move, score)
+      });
+      let (chosen_move, _score) = match self.position {
+          Position::South => potential_moves.max_by_key(|&(_, score)| score),
+          Position::North => potential_moves.min_by_key(|&(_, score)| score),
+      }
+      .unwrap();
+      chosen_move
+    }
+
+
     fn make_move<E: Evaluator>(&mut self, max_depth: usize, weights: Weights) {
-        let player_state = self.our_state();
-        let moves = player_state.moves_iter();
-        let moves = if self.can_swap() {
-            moves.chain(Some(PlayerMove::Swap))
-        } else {
-            moves.chain(None)
+        let start = Instant::now();
+        let mut depth = 5;
+        let chosen_move = loop {
+          let picked_move = self.get_move::<E>(depth, weights);
+          if start.elapsed().as_secs() > 3 || depth >= 30 {
+            break picked_move;
+          }
+          depth += 1;
         };
 
-        let potential_moves = moves.map(|the_move| {
-            let (board, next_pos, next_first_move) =
-                self.state.do_move(the_move, self.position, self.first_move);
-            let score = E::eval(board, next_pos, 0, next_first_move, max_depth, weights);
-            (the_move, score)
-        });
-        let (chosen_move, _score) = match self.position {
-            Position::South => potential_moves.max_by_key(|&(_, score)| score),
-            Position::North => potential_moves.min_by_key(|&(_, score)| score),
-        }
-        .unwrap();
         if let PlayerMove::Swap = chosen_move {
             self.swap_sides();
         }

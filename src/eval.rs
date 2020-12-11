@@ -1,5 +1,5 @@
 use crate::{
-    board::{BoardState, PlayerMove, Position},
+    board::{BoardState, Position},
     heuristics::{weighted_heuristic, Score, Weights},
 };
 use std::cmp;
