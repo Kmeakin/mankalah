@@ -65,7 +65,7 @@ impl Agent {
         chosen_move.unwrap()
     }
 
-    fn make_move<E: Evaluator>(&mut self, max_depth: usize, weights: Weights) {
+    fn make_move<E: Evaluator>(&mut self, max_depth: usize, weights: Weights) -> bool {
         let start = Instant::now();
         // let mut depth = 5;
         // let chosen_move = loop {
@@ -80,11 +80,16 @@ impl Agent {
         log::debug!("chosen_move = {:?}", chosen_move);
 
         // Does not look like the engine tells us if we swap
-        if let PlayerMove::Swap = chosen_move {
+        let swapped = if let PlayerMove::Swap = chosen_move {
             self.swap_sides();
-        }
+            log::debug!("Done swap {:?}", self.position);
+            true
+        } else {
+          false
+        };
         self.send_move(chosen_move);
         self.first_move = false;
+        swapped
     }
 
     fn swap_sides(&mut self) {
@@ -106,13 +111,13 @@ impl Agent {
 
     pub fn run<E: Evaluator>(&mut self, max_depth: usize, weights: Weights) {
         let mut message = read_engine_message();
-        let mut was_are_move = false;
+        let mut was_our_move = false;
         match message {
             EngineMessage::NewMatch { pos } => {
                 self.position = pos;
                 if pos == Position::South {
                     self.make_move::<E>(max_depth, weights);
-                    was_are_move = true;
+                    was_our_move = true;
                 }
             }
             EngineMessage::GameOver => {
@@ -137,15 +142,16 @@ impl Agent {
                     log::debug!("our pos {:?}", self.position);
                     match player_move {
                         PlayerMove::Swap => {
+                            log::debug!("swappy?");
                             self.swap_sides();
                         }
                         PlayerMove::Move { .. } => {
-                            let move_pos = if was_are_move {
+                            let move_pos = if was_our_move {
                                 self.position
                             } else {
                                 !self.position
                             };
-                            log::debug!("here? {:?} {:?}", player_move, move_pos);
+                            log::debug!("here? {:?} {:?} -- us {:?} {:?}", player_move, move_pos, self.position, was_our_move);
                             self.state.apply_move(player_move, move_pos, false);
                         }
                     }
@@ -154,7 +160,7 @@ impl Agent {
                     our_turn = match turn {
                         Turn::You => true,
                         Turn::Opponent => {
-                            was_are_move = false;
+                            was_our_move = false;
                             false
                         }
                         Turn::End => {
@@ -165,8 +171,7 @@ impl Agent {
                 _ => unreachable!(),
             }
             if our_turn {
-                self.make_move::<E>(max_depth, weights);
-                was_are_move = true;
+                was_our_move = !self.make_move::<E>(max_depth, weights);
             }
         }
     }
