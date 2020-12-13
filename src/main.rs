@@ -1,4 +1,5 @@
 use clap::{App, Arg};
+use flexi_logger::Logger;
 use mankalah::{
     agent::Agent,
     eval::{AlphaBeta, MiniMax},
@@ -7,6 +8,10 @@ use mankalah::{
 use std::{convert::TryInto, str::FromStr};
 
 fn main() {
+    // run with `RUST_LOG=debug cargo run --bin mankalah ...`
+    // output is saved to mankalah_YYYY-MM-DD_HH-mm-ss.log
+    Logger::with_env().log_to_file().start().unwrap();
+
     let args = App::new("Mankalah")
         .version("1.0")
         .author("Karl Meakin & Ben Maxwell")

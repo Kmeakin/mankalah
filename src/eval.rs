@@ -2,8 +2,8 @@ use crate::{
     board::{BoardState, Position},
     heuristics::{weighted_heuristic, Score, Weights},
 };
-use std::cmp;
 use ordered_float::OrderedFloat;
+use std::cmp;
 
 pub trait Evaluator {
     fn eval(
@@ -95,10 +95,37 @@ fn alpha_beta(
     max_depth: usize,
     weights: Weights,
 ) -> Score {
-    if let Some(payoff) = board.is_terminal(pos) {
-        payoff
+    log::debug!(
+        "{:depth$}alpha = {alpha}, beta = {beta}, pos = {pos}, first_move = {first_move}, \
+         max_depth = {max_depth}",
+        // pad the empty string with 2 * depth spaces
+        "",
+        depth = depth * 2,
+        // provide values for string interpolation. `#![feature(format_args_capture)]` should do
+        // this automatically, but it doesnt in logging for some reason
+        alpha = alpha,
+        beta = beta,
+        pos = pos,
+        first_move = first_move,
+        max_depth = max_depth
+    );
+    if let Some(score) = board.is_terminal(pos) {
+        log::debug!(
+            "{:depth$}board is terminal: score = {score}",
+            "",
+            depth = depth * 2,
+            score = score
+        );
+        score
     } else if depth >= max_depth {
-        weighted_heuristic(weights, &board)
+        let score = weighted_heuristic(weights, &board);
+        log::debug!(
+            "{:depth$}max depth exceeded, using heuristics: score = {score}",
+            "",
+            depth = depth * 2,
+            score = score
+        );
+        score
     } else {
         match pos {
             Position::South => {
@@ -117,8 +144,24 @@ fn alpha_beta(
                             weights,
                         ),
                     );
-                    alpha = cmp::max(alpha, value);
+                    let new_alpha = cmp::max(alpha, value);
+                    log::debug!(
+                        "{:depth$}alpha = max({alpha}, {value}) = {new_alpha}",
+                        "",
+                        depth = depth * 2,
+                        alpha = alpha,
+                        value = value,
+                        new_alpha = new_alpha
+                    );
+                    alpha = new_alpha;
                     if alpha >= beta {
+                        log::debug!(
+                            "{:depth$}alpha >= beta ({alpha} > {beta}), breaking",
+                            "",
+                            depth = depth * 2,
+                            alpha = alpha,
+                            beta = beta
+                        );
                         break;
                     }
                 }
@@ -140,11 +183,33 @@ fn alpha_beta(
                             weights,
                         ),
                     );
-                    beta = cmp::min(beta, value);
+                    let new_beta = cmp::min(beta, value);
+                    log::debug!(
+                        "{:depth$}beta = min({beta}, {value}) = {new_beta}",
+                        "",
+                        depth = depth * 2,
+                        beta = beta,
+                        value = value,
+                        new_beta = new_beta
+                    );
+                    beta = new_beta;
                     if beta <= alpha {
+                        log::debug!(
+                            "{:depth$}beta <= alpha ({beta} <= {alpha}), breaking",
+                            "",
+                            depth = depth * 2,
+                            beta = beta,
+                            alpha = alpha
+                        );
                         break;
                     }
                 }
+                log::debug!(
+                    "{:depth$}value = {value}",
+                    "",
+                    depth = depth * 2,
+                    value = value
+                );
                 value
             }
         }

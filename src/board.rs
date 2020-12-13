@@ -62,6 +62,10 @@ pub enum Position {
     South,
 }
 
+impl fmt::Display for Position {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{:?}", self) }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PlayerMove {
     Move { n: Nat },
