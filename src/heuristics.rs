@@ -1,4 +1,4 @@
-use crate::board::{BoardState, Position, TOTAL_PITS};
+use crate::board::{BoardState, Position, PITS_PER_PLAYER, TOTAL_PITS};
 use ordered_float::OrderedFloat;
 
 pub type Score = OrderedFloat<f32>;
@@ -34,21 +34,37 @@ fn current_score(board: &BoardState) -> i8 {
 fn offensive_capture(board: &BoardState) -> i8 {
     fn count_captures(board: &BoardState, pos: Position) -> i8 {
         let mut n_captures = 0;
-        for (idx, n_stones) in board[pos]
+        for (starting_pit, &n_stones) in board[pos]
             .pits
             .iter()
             .enumerate()
-            .filter(|(_, n_stones)| **n_stones > 0)
+            .filter(|(_, &n_stones)| n_stones > 0)
         {
-            if let Some(n_opposite) = board[!pos]
-                .pits
-                .get(idx + (*n_stones as usize % TOTAL_PITS) as usize)
-            {
-                n_captures += n_opposite + 1; // plus one for capturing seed
+            let final_pit = (starting_pit + n_stones as usize) % (TOTAL_PITS - 1);
+            match (
+                board[pos].pits.get(final_pit),
+                board[!pos].pits.get(final_pit),
+            ) {
+                (Some(&n_landed), Some(&n_opposite)) => {
+                    let n_stones_deposited_in_starting_pit = n_stones as usize / (TOTAL_PITS - 1);
+
+                    // player can capture if:
+                    let a = n_landed == 0; // the stone lands in an empty pit
+                    let b = final_pit == starting_pit; // or the stone lands in the pit where he started
+                    let c = n_stones_deposited_in_starting_pit == 1; // but only when that stone is the first stone deposited in the pit where he
+                                                                     // started
+                    let d = n_opposite > 0; // and there are more than 0 stones in the pit opposite
+
+                    if (a || (b && c)) && d {
+                        n_captures += n_opposite + 1
+                    }
+                }
+                _ => {}
             }
         }
         n_captures as i8
     }
+
     let north_captures = count_captures(board, Position::North);
     let south_captures = count_captures(board, Position::South);
     south_captures - north_captures
@@ -77,4 +93,117 @@ fn hoarding(board: &BoardState) -> i8 {
     let n_south = board[Position::South].pits.iter().rev().take(2).sum::<u8>() as i8;
     let n_north = board[Position::North].pits.iter().rev().take(2).sum::<u8>() as i8;
     n_south - n_north
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::board::{PlayerState, PITS_PER_PLAYER};
+
+    #[track_caller]
+    fn test_offensive_capture(
+        north: [u8; PITS_PER_PLAYER],
+        south: [u8; PITS_PER_PLAYER],
+        expected: i8,
+    ) {
+        let board = BoardState {
+            north: PlayerState {
+                score: 0,
+                pits: north,
+            },
+            south: PlayerState {
+                score: 0,
+                pits: south,
+            },
+        };
+        let got = offensive_capture(&board);
+        assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn neither_side_can_capture() { test_offensive_capture([1; 7], [1; 7], 0); }
+
+    #[test]
+    fn north_can_capture_1() {
+        test_offensive_capture([1, 1, 1, 1, 1, 1, 0], [1; 7], -2);
+        test_offensive_capture([1, 1, 1, 1, 1, 0, 1], [1; 7], -2);
+        test_offensive_capture([1, 1, 1, 1, 0, 1, 1], [1; 7], -2);
+        test_offensive_capture([1, 1, 1, 0, 1, 1, 1], [1; 7], -2);
+        test_offensive_capture([1, 1, 0, 1, 1, 1, 1], [1; 7], -2);
+        test_offensive_capture([1, 0, 1, 1, 1, 1, 1], [1; 7], -2);
+    }
+
+    #[test]
+    fn south_can_capture_1() {
+        test_offensive_capture([1; 7], [1, 1, 1, 1, 1, 1, 0], 2);
+        test_offensive_capture([1; 7], [1, 1, 1, 1, 1, 0, 1], 2);
+        test_offensive_capture([1; 7], [1, 1, 1, 1, 0, 1, 1], 2);
+        test_offensive_capture([1; 7], [1, 1, 1, 0, 1, 1, 1], 2);
+        test_offensive_capture([1; 7], [1, 1, 0, 1, 1, 1, 1], 2);
+        test_offensive_capture([1; 7], [1, 0, 1, 1, 1, 1, 1], 2);
+    }
+
+    #[test]
+    fn both_can_capture_1() {
+        test_offensive_capture(
+            [1, 1, 1, 1, 1, 1, 0], // north
+            [1, 0, 1, 1, 1, 1, 1], // south
+            0,
+        );
+    }
+
+    #[test]
+    fn north_can_capture_3() {
+        test_offensive_capture(
+            [1, 0, 1, 0, 1, 0, 1], // north
+            [1, 1, 1, 1, 1, 1, 1], // south
+            -6,
+        );
+    }
+
+    #[test]
+    fn south_can_capture_3() {
+        test_offensive_capture(
+            [1, 1, 1, 1, 1, 1, 1], // north
+            [1, 0, 1, 0, 1, 0, 1], // south
+            6,
+        );
+    }
+
+    #[test]
+    fn north_can_capture_by_wrapping_around() {
+        test_offensive_capture(
+            [0, 1, 1, 1, 1, 10, 1], // north
+            [1, 1, 1, 1, 1, 1, 1],  // south
+            -2,
+        );
+    }
+
+    #[test]
+    fn north_can_capture_by_wrapping_around_twice() {
+        test_offensive_capture(
+            [0, 1, 1, 1, 1, 25, 1], // north
+            [1, 1, 1, 1, 1, 1, 1],  // south
+            -2,
+        );
+    }
+
+    #[test]
+    fn north_can_capture_by_wrapping_around_twice_and_landing_on_the_same_pit_where_he_started() {
+        test_offensive_capture(
+            [0, 1, 1, 1, 1, 15, 1], // north
+            [1, 1, 1, 1, 1, 1, 1],  // south
+            -2,
+        );
+    }
+
+    #[test]
+    fn north_cannot_capture_by_wrapping_around_thrice_and_landing_on_the_same_pit_where_he_started()
+    {
+        test_offensive_capture(
+            [0, 1, 1, 1, 1, 30, 1], // north
+            [1, 1, 1, 1, 1, 1, 1],  // south
+            0,
+        );
+    }
 }
