@@ -131,6 +131,12 @@ fn alpha_beta(
             Position::South => {
                 let mut value = OrderedFloat(-f32::INFINITY);
                 for (child, next_pos, next_fist_move) in board.child_boards(pos, first_move) {
+                    log::debug!(
+                        "{:depth$}child_board = {child:?}",
+                        "",
+                        depth = depth * 2,
+                        child = child,
+                    );
                     value = cmp::max(
                         value,
                         alpha_beta(
@@ -170,6 +176,12 @@ fn alpha_beta(
             Position::North => {
                 let mut value = OrderedFloat(f32::INFINITY);
                 for (child, next_pos, next_first_move) in board.child_boards(pos, first_move) {
+                    log::debug!(
+                        "{:depth$}child_board = {child:?}",
+                        "",
+                        depth = depth * 2,
+                        child = child,
+                    );
                     value = cmp::min(
                         value,
                         alpha_beta(
