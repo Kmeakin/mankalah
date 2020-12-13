@@ -384,7 +384,7 @@ mod test {
             },
         };
 
-        board_state.apply_move(PlayerMove::Move { n: 0 }, Position::South);
+        board_state.apply_move(PlayerMove::Move { n: 0 }, Position::South, false);
         assert_eq!(
             board_state,
             BoardState {
@@ -447,7 +447,7 @@ mod test {
         );
 
         assert_eq!(
-            board_state.apply_move(PlayerMove::Move { n: 1 }, Position::South),
+            board_state.apply_move(PlayerMove::Move { n: 1 }, Position::South, false),
             (
                 BoardState {
                     north: PlayerState {
@@ -459,7 +459,8 @@ mod test {
                         pits: [3, 0, 3, 0, 0, 0, 4],
                     }
                 },
-                Position::North
+                Position::North,
+                false
             )
         );
     }
@@ -469,9 +470,8 @@ mod test {
         let player_state = PlayerState::default();
 
         assert_eq!(
-            player_state.moves_iter(true).collect::<Vec<PlayerMove>>(),
+            player_state.moves_iter().collect::<Vec<PlayerMove>>(),
             vec![
-                PlayerMove::Swap,
                 PlayerMove::Move { n: 0 },
                 PlayerMove::Move { n: 1 },
                 PlayerMove::Move { n: 2 },
@@ -491,7 +491,7 @@ mod test {
         };
 
         assert_eq!(
-            player_state.moves_iter(false).collect::<Vec<PlayerMove>>(),
+            player_state.moves_iter().collect::<Vec<PlayerMove>>(),
             vec![]
         );
     }
@@ -503,7 +503,7 @@ mod test {
             pits: [0, 0, 4, 0, 2, 8, 0],
         };
         assert_eq!(
-            player_state.moves_iter(false).collect::<Vec<PlayerMove>>(),
+            player_state.moves_iter().collect::<Vec<PlayerMove>>(),
             vec![
                 PlayerMove::Move { n: 2 },
                 PlayerMove::Move { n: 4 },
