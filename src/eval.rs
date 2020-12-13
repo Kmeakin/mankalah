@@ -185,10 +185,11 @@ fn alpha_beta(
                 let mut best_move: Option<PlayerMove> = None;
                 for (the_move, child, next_pos, next_first_move) in board.child_boards(pos, first_move) {
                     log::debug!(
-                        "{:depth$}child_board = {child:?}",
+                        "{:depth$}the_move = {the_move:?} child_board = {child:?}",
                         "",
                         depth = depth * 2,
                         child = child,
+                        the_move = the_move
                     );
                     let (_, child_score) =  alpha_beta(
                       child,

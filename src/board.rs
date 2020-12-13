@@ -118,8 +118,7 @@ struct SowSeedsIterator {
 
 impl SowSeedsIterator {
     const IPITS_PER_PLAYER: isize = PITS_PER_PLAYER as isize;
-    const SOUTH_SCORE: isize = SowSeedsIterator::IPITS_PER_PLAYER + 1;
-    const NORTH_SCORE: isize = 0;
+    const SCORING_PIT: isize = SowSeedsIterator::IPITS_PER_PLAYER + 1;
 
     fn new(board: BoardState, pos: Position, start_at: Nat) -> SowSeedsIterator {
         // start_at is 1 based for which pit the player picks
@@ -127,7 +126,7 @@ impl SowSeedsIterator {
         let start_index = if start_at == 0 {
             1
         } else {
-            (start_at as isize) + if pos == Position::South { 1 } else { -1 }
+            (start_at as isize) + 1
         };
         SowSeedsIterator {
             board,
@@ -142,10 +141,10 @@ impl SowSeedsIterator {
     fn to_location(&self, index: isize) -> FinalLocation {
         match (self.position, index) {
             (Position::South, 1..=7) => FinalLocation::South((index - 1) as Nat),
-            (Position::South, Self::SOUTH_SCORE) => FinalLocation::SouthScore,
+            (Position::South, Self::SCORING_PIT) => FinalLocation::SouthScore,
             (Position::South, -7..=-1) => FinalLocation::North((index - 1) as Nat),
             (Position::North, 1..=7) => FinalLocation::North((index - 1) as Nat),
-            (Position::North, Self::NORTH_SCORE) => FinalLocation::NorthScore,
+            (Position::North, Self::SCORING_PIT) => FinalLocation::NorthScore,
             (Position::North, -7..=-1) => FinalLocation::South((index - 1) as Nat),
             (_, _) => unreachable!(),
         }
@@ -163,10 +162,10 @@ impl Iterator for SowSeedsIterator {
                     self.index += 1;
                 } else if self.index == Self::IPITS_PER_PLAYER + 1 {
                     self.board.south.score += 1;
-                    self.index = -7;
+                    self.index = -1;
                 } else if self.their_side() {
                     self.board.north.pits[(visited.abs() - 1) as usize] += 1;
-                    self.index += 1;
+                    self.index -= 1;
                 } else {
                     return None;
                 }
@@ -174,8 +173,8 @@ impl Iterator for SowSeedsIterator {
             Position::North => {
                 if self.our_side() {
                     self.board.north.pits[(visited - 1) as usize] += 1;
-                    self.index -= 1;
-                } else if self.index == 0 {
+                    self.index += 1;
+                } else if self.index == Self::IPITS_PER_PLAYER + 1 {
                     self.board.north.score += 1;
                     self.index = -1;
                 } else if self.their_side() {
