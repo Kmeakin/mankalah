@@ -59,8 +59,9 @@ impl Agent {
         //   }
         //   depth += 1;
         // };
+        log::debug!("Getting move: pos = {:?}", self.position);
         let chosen_move = self.get_move::<E>(max_depth, weights);
-
+        log::debug!("chosen_move = {:?}", chosen_move);
 
         if let PlayerMove::Swap = chosen_move {
             self.swap_sides();
