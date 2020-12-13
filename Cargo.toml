@@ -11,6 +11,7 @@ peg = "0.6.3"
 clap = "2.33.3"
 ordered-float = "2.0.1"
 log = "0.4.11"
+flexi_logger = "0.16.2"
 
 [[bin]]
 name = "benchmark"
