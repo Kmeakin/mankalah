@@ -44,39 +44,23 @@ impl Agent {
 
 
     fn get_move<E: Evaluator>(&self, max_depth: usize, weights: Weights) -> PlayerMove {
-      let player_state = self.our_state();
-      let moves = player_state.moves_iter();
-      let moves = if self.can_swap() {
-          moves.chain(Some(PlayerMove::Swap))
-      } else {
-          moves.chain(None)
-      };
-
-      let potential_moves = moves.map(|the_move| {
-          let (board, next_pos, next_first_move) =
-              self.state.do_move(the_move, self.position, self.first_move);
-          let score = E::eval(board, next_pos, 0, next_first_move, max_depth, weights);
-          (the_move, score)
-      });
-      let (chosen_move, _score) = match self.position {
-          Position::South => potential_moves.max_by_key(|&(_, score)| score),
-          Position::North => potential_moves.min_by_key(|&(_, score)| score),
-      }
-      .unwrap();
-      chosen_move
+      let (chosen_move, _) =  E::eval(self.state, self.position, 0, self.first_move, max_depth, weights);
+      chosen_move.unwrap()
     }
 
 
     fn make_move<E: Evaluator>(&mut self, max_depth: usize, weights: Weights) {
         let start = Instant::now();
-        let mut depth = 5;
-        let chosen_move = loop {
-          let picked_move = self.get_move::<E>(depth, weights);
-          if start.elapsed().as_secs() > 3 || depth >= 30 {
-            break picked_move;
-          }
-          depth += 1;
-        };
+        // let mut depth = 5;
+        // let chosen_move = loop {
+        //   let picked_move = self.get_move::<E>(depth, weights);
+        //   if start.elapsed().as_secs() > 3 || depth >= 30 {
+        //     break picked_move;
+        //   }
+        //   depth += 1;
+        // };
+        let chosen_move = self.get_move::<E>(max_depth, weights);
+
 
         if let PlayerMove::Swap = chosen_move {
             self.swap_sides();

@@ -79,7 +79,7 @@ fn chaining_potential(board: &BoardState) -> i8 {
     fn count_chains(board: &BoardState, pos: Position) -> u8 {
         board
             .child_boards(pos, false)
-            .filter(|child| child.1 == pos)
+            .filter(|child| child.2 == pos)
             .count() as u8
     }
     let south_chains = count_chains(board, Position::South) as i8;

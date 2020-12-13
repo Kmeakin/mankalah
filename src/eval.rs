@@ -1,10 +1,8 @@
-use crate::{
-    board::{BoardState, Position},
-    heuristics::{weighted_heuristic, Score, Weights},
-};
+use crate::{board::{BoardState, PlayerMove, Position}, heuristics::{weighted_heuristic, Score, Weights}};
 use ordered_float::OrderedFloat;
 use std::cmp;
 
+type Evaluation = (Option<PlayerMove>, Score);
 pub trait Evaluator {
     fn eval(
         board: BoardState,
@@ -13,7 +11,7 @@ pub trait Evaluator {
         first_move: bool,
         max_depth: usize,
         weights: Weights,
-    ) -> Score;
+    ) -> Evaluation;
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -27,7 +25,7 @@ impl Evaluator for MiniMax {
         first_move: bool,
         max_depth: usize,
         weights: Weights,
-    ) -> Score {
+    ) -> Evaluation {
         minimax(board, pos, depth, first_move, max_depth, weights)
     }
 }
@@ -39,28 +37,29 @@ fn minimax(
     first_move: bool,
     max_depth: usize,
     weights: Weights,
-) -> Score {
+) -> Evaluation {
     if let Some(payoff) = board.is_terminal(position) {
-        payoff
+        (None, payoff)
     } else if depth >= max_depth {
-        weighted_heuristic(weights, &board)
+        (None, weighted_heuristic(weights, &board))
     } else {
         let iter = board.child_boards(position, first_move).map(
-            |(board, child_position, next_first_move)| {
-                minimax(
-                    board,
-                    child_position,
-                    depth + 1,
-                    next_first_move,
-                    max_depth,
-                    weights,
-                )
+            |(the_move, board, child_position, next_first_move)| {
+              let (_, score) = minimax(
+                board,
+                child_position,
+                depth + 1,
+                next_first_move,
+                max_depth,
+                weights,
+              );
+              (Some(the_move), score)
             },
         );
 
         match position {
-            Position::South => iter.max().unwrap(), // player 1
-            Position::North => iter.min().unwrap(), // player 2
+            Position::South => iter.max_by_key(|&(_, score)| score).unwrap(), // player 1
+            Position::North => iter.min_by_key(|&(_, score)| score).unwrap(), // player 2
         }
     }
 }
@@ -76,7 +75,7 @@ impl Evaluator for AlphaBeta {
         first_move: bool,
         max_depth: usize,
         weights: Weights,
-    ) -> Score {
+    ) -> Evaluation {
         let alpha = OrderedFloat(-f32::INFINITY);
         let beta = OrderedFloat(f32::INFINITY);
         alpha_beta(
@@ -94,7 +93,7 @@ fn alpha_beta(
     first_move: bool,
     max_depth: usize,
     weights: Weights,
-) -> Score {
+) -> Evaluation {
     log::debug!(
         "{:depth$}alpha = {alpha}, beta = {beta}, pos = {pos}, first_move = {first_move}, \
          max_depth = {max_depth}",
@@ -116,7 +115,7 @@ fn alpha_beta(
             depth = depth * 2,
             score = score
         );
-        score
+        (None, score)
     } else if depth >= max_depth {
         let score = weighted_heuristic(weights, &board);
         log::debug!(
@@ -125,31 +124,38 @@ fn alpha_beta(
             depth = depth * 2,
             score = score
         );
-        score
+        (None, score)
     } else {
         match pos {
             Position::South => {
-                let mut value = OrderedFloat(-f32::INFINITY);
-                for (child, next_pos, next_fist_move) in board.child_boards(pos, first_move) {
+                let mut score = OrderedFloat(-f32::INFINITY);
+                let mut value = score;
+                let mut best_move: Option<PlayerMove> = None;
+                for (the_move, child, next_pos, next_fist_move) in board.child_boards(pos, first_move) {
                     log::debug!(
                         "{:depth$}child_board = {child:?}",
                         "",
                         depth = depth * 2,
                         child = child,
                     );
-                    value = cmp::max(
-                        value,
-                        alpha_beta(
-                            child,
-                            depth + 1,
-                            alpha,
-                            beta,
-                            next_pos,
-                            next_fist_move,
-                            max_depth,
-                            weights,
-                        ),
+
+                    let (_, child_score) = alpha_beta(
+                      child,
+                      depth + 1,
+                      alpha,
+                      beta,
+                      next_pos,
+                      next_fist_move,
+                      max_depth,
+                      weights,
                     );
+
+                    if child_score > score {
+                      score = child_score;
+                      best_move = Some(the_move);
+                    }
+
+                    value = cmp::max(value ,score);
                     let new_alpha = cmp::max(alpha, value);
                     log::debug!(
                         "{:depth$}alpha = max({alpha}, {value}) = {new_alpha}",
@@ -171,30 +177,37 @@ fn alpha_beta(
                         break;
                     }
                 }
-                value
+                (best_move, value)
             }
             Position::North => {
-                let mut value = OrderedFloat(f32::INFINITY);
-                for (child, next_pos, next_first_move) in board.child_boards(pos, first_move) {
+                let mut score = OrderedFloat(f32::INFINITY);
+                let mut value = score;
+                let mut best_move: Option<PlayerMove> = None;
+                for (the_move, child, next_pos, next_first_move) in board.child_boards(pos, first_move) {
                     log::debug!(
                         "{:depth$}child_board = {child:?}",
                         "",
                         depth = depth * 2,
                         child = child,
                     );
-                    value = cmp::min(
-                        value,
-                        alpha_beta(
-                            child,
-                            depth + 1,
-                            alpha,
-                            beta,
-                            next_pos,
-                            next_first_move,
-                            max_depth,
-                            weights,
-                        ),
+                    let (_, child_score) =  alpha_beta(
+                      child,
+                      depth + 1,
+                      alpha,
+                      beta,
+                      next_pos,
+                      next_first_move,
+                      max_depth,
+                      weights,
                     );
+
+                    if child_score < score {
+                      score = child_score;
+                      best_move = Some(the_move);
+                    }
+
+                    value = cmp::min(value,score);
+
                     let new_beta = cmp::min(beta, value);
                     log::debug!(
                         "{:depth$}beta = min({beta}, {value}) = {new_beta}",
@@ -222,7 +235,7 @@ fn alpha_beta(
                     depth = depth * 2,
                     value = value
                 );
-                value
+                (best_move, value)
             }
         }
     }

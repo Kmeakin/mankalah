@@ -268,16 +268,16 @@ impl BoardState {
         &self,
         position: Position,
         first_move: bool,
-    ) -> impl Iterator<Item = (BoardState, Position, bool)> + '_ {
+    ) -> impl Iterator<Item = (PlayerMove, BoardState, Position, bool)> + '_ {
         let boards = self[position]
             .moves_iter()
-            .map(move |player_move| self.do_move(player_move, position, first_move));
+            .map(move |player_move| {
+              let (board, next_position, next_first_move) = self.do_move(player_move, position, first_move);
+              (player_move, board, next_position, next_first_move)
+            });
         if first_move && position == Position::North {
-            boards.chain(Some(self.do_move(
-                PlayerMove::Swap,
-                Position::North,
-                first_move,
-            )))
+            let (board, next_position, next_first_move) = self.do_move(PlayerMove::Swap, Position::North, first_move);
+            boards.chain(Some((PlayerMove::Swap, board, next_position, next_first_move)))
         } else {
             boards.chain(None)
         }
