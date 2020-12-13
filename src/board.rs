@@ -214,10 +214,13 @@ impl BoardState {
         let final_pit = final_pit as usize;
         if self[position].pits[final_pit] == 1 {
             // must have been 0 before
-            self[position].pits[final_pit] = 0;
-            let captured = self[!position].pits[final_pit];
-            self[position].score += captured + 1;
-            self[!position].pits[final_pit] = 0;
+            let opp_bit = 6 - final_pit;
+            let captured = self[!position].pits[opp_bit];
+            if captured > 0 {
+                self[position].pits[final_pit] = 0;
+                self[position].score += captured + 1;
+                self[!position].pits[opp_bit] = 0;
+            }
         }
     }
 
@@ -268,15 +271,20 @@ impl BoardState {
         position: Position,
         first_move: bool,
     ) -> impl Iterator<Item = (PlayerMove, BoardState, Position, bool)> + '_ {
-        let boards = self[position]
-            .moves_iter()
-            .map(move |player_move| {
-              let (board, next_position, next_first_move) = self.do_move(player_move, position, first_move);
-              (player_move, board, next_position, next_first_move)
-            });
+        let boards = self[position].moves_iter().map(move |player_move| {
+            let (board, next_position, next_first_move) =
+                self.do_move(player_move, position, first_move);
+            (player_move, board, next_position, next_first_move)
+        });
         if first_move && position == Position::North {
-            let (board, next_position, next_first_move) = self.do_move(PlayerMove::Swap, Position::North, first_move);
-            boards.chain(Some((PlayerMove::Swap, board, next_position, next_first_move)))
+            let (board, next_position, next_first_move) =
+                self.do_move(PlayerMove::Swap, Position::North, first_move);
+            boards.chain(Some((
+                PlayerMove::Swap,
+                board,
+                next_position,
+                next_first_move,
+            )))
         } else {
             boards.chain(None)
         }
@@ -317,11 +325,11 @@ mod test {
             BoardState {
                 north: PlayerState {
                     score: 0,
-                    pits: [7, 7, 7, 7, 7, 7, 8]
+                    pits: [8, 7, 7, 7, 7, 7, 7]
                 },
                 south: PlayerState {
+                    pits: [7, 0, 8, 8, 8, 8, 8],
                     score: 1,
-                    pits: [7, 0, 8, 8, 8, 8, 8]
                 }
             }
         );
@@ -336,11 +344,11 @@ mod test {
             BoardState {
                 north: PlayerState {
                     score: 1,
-                    pits: [8, 8, 8, 8, 0, 7, 7]
+                    pits: [7, 7, 7, 7, 0, 8, 8],
                 },
                 south: PlayerState {
                     score: 0,
-                    pits: [8, 8, 7, 7, 7, 7, 7]
+                    pits: [8, 8, 8, 8, 7, 7, 7]
                 }
             }
         )
@@ -407,8 +415,8 @@ mod test {
     fn example_play() {
         let mut board_state = BoardState {
             north: PlayerState {
-                score: 0,
                 pits: [2, 2, 2, 3, 0, 0, 1],
+                score: 0,
             },
             south: PlayerState {
                 score: 0,
@@ -421,12 +429,12 @@ mod test {
             board_state,
             BoardState {
                 north: PlayerState {
-                    pits: [0, 2, 2, 3, 0, 0, 1],
-                    score: 1,
+                    pits: [0, 3, 3, 3, 0, 0, 1],
+                    score: 0,
                 },
                 south: PlayerState {
+                    pits: [2, 2, 2, 0, 0, 2, 3],
                     score: 0,
-                    pits: [3, 2, 2, 0, 0, 2, 3],
                 }
             }
         );
@@ -439,12 +447,12 @@ mod test {
             board_state,
             BoardState {
                 north: PlayerState {
-                    pits: [0, 2, 2, 3, 0, 0, 1],
-                    score: 1,
+                    score: 0,
+                    pits: [0, 3, 3, 3, 0, 0, 1],
                 },
                 south: PlayerState {
+                    pits: [2, 2, 2, 0, 0, 0, 4],
                     score: 1,
-                    pits: [3, 2, 2, 0, 0, 0, 4],
                 }
             }
         );
@@ -454,12 +462,12 @@ mod test {
             (
                 BoardState {
                     north: PlayerState {
-                        pits: [0, 2, 2, 0, 0, 0, 1],
-                        score: 1,
+                        score: 0,
+                        pits: [0, 3, 3, 0, 0, 0, 1],
                     },
                     south: PlayerState {
+                        pits: [2, 0, 3, 0, 0, 0, 4],
                         score: 5,
-                        pits: [3, 0, 3, 0, 0, 0, 4],
                     }
                 },
                 Position::North,
@@ -500,6 +508,38 @@ mod test {
     }
 
     #[test]
+    fn north_one_seed_in_6() {
+        let mut board_state = BoardState {
+            north: PlayerState {
+                pits: [6, 5, 0, 3, 3, 1, 0],
+                score: 7,
+            },
+            south: PlayerState {
+                score: 27,
+                pits: [0, 3, 18, 3, 0, 2, 20],
+            },
+        };
+
+        assert_eq!(
+            board_state.apply_move(PlayerMove::Move { n: 5 }, Position::North, false),
+            (
+                BoardState {
+                    north: PlayerState {
+                        pits: [6, 5, 0, 3, 3, 0, 1],
+                        score: 7,
+                    },
+                    south: PlayerState {
+                        score: 27,
+                        pits: [0, 3, 18, 3, 0, 2, 20],
+                    },
+                },
+                Position::South,
+                false
+            )
+        );
+    }
+
+    #[test]
     fn some_possible_moves() {
         let player_state = PlayerState {
             score: 0,
@@ -513,5 +553,20 @@ mod test {
                 PlayerMove::Move { n: 5 },
             ]
         );
+
+        fn wrap_around() {
+            let player_state = PlayerState {
+                score: 0,
+                pits: [0, 0, 4, 0, 2, 8, 0],
+            };
+            assert_eq!(
+                player_state.moves_iter().collect::<Vec<PlayerMove>>(),
+                vec![
+                    PlayerMove::Move { n: 2 },
+                    PlayerMove::Move { n: 4 },
+                    PlayerMove::Move { n: 5 },
+                ]
+            );
+        }
     }
 }

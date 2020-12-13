@@ -1,16 +1,20 @@
-use crate::{board::{BoardState, PlayerMove, PlayerState, Position}, eval::Evaluator, grammar::ProtocolGrammar, heuristics::{Score, Weights}, protocol::*};
-use std::io::BufRead;
-use std::time::{Duration, Instant};
+use crate::{
+    board::{BoardState, PlayerMove, PlayerState, Position},
+    eval::Evaluator,
+    grammar::ProtocolGrammar,
+    heuristics::{Score, Weights},
+    protocol::*,
+};
+use std::{
+    io::BufRead,
+    time::{Duration, Instant},
+};
 
 fn read_line() -> String {
     let mut line = String::new();
     let stdin = std::io::stdin();
     stdin.lock().read_line(&mut line).unwrap();
     line
-}
-
-fn send_move(chosen_move: PlayerMove) {
-    print!("{}", chosen_move);
 }
 
 fn read_engine_message() -> EngineMessage {
@@ -42,12 +46,24 @@ impl Agent {
 
     pub fn can_swap(&self) -> bool { self.first_move && self.position == Position::North }
 
-
-    fn get_move<E: Evaluator>(&self, max_depth: usize, weights: Weights) -> PlayerMove {
-      let (chosen_move, _) =  E::eval(self.state, self.position, 0, self.first_move, max_depth, weights);
-      chosen_move.unwrap()
+    fn send_move(&mut self, chosen_move: PlayerMove) {
+        // if let PlayerMove::Move { .. } = chosen_move {
+        //   self.state.apply_move( chosen_move, self.position, true);
+        // }
+        print!("{}", chosen_move);
     }
 
+    fn get_move<E: Evaluator>(&self, max_depth: usize, weights: Weights) -> PlayerMove {
+        let (chosen_move, _) = E::eval(
+            self.state,
+            self.position,
+            0,
+            self.first_move,
+            max_depth,
+            weights,
+        );
+        chosen_move.unwrap()
+    }
 
     fn make_move<E: Evaluator>(&mut self, max_depth: usize, weights: Weights) {
         let start = Instant::now();
@@ -63,10 +79,11 @@ impl Agent {
         let chosen_move = self.get_move::<E>(max_depth, weights);
         log::debug!("chosen_move = {:?}", chosen_move);
 
+        // Does not look like the engine tells us if we swap
         if let PlayerMove::Swap = chosen_move {
             self.swap_sides();
         }
-        send_move(chosen_move);
+        self.send_move(chosen_move);
         self.first_move = false;
     }
 
@@ -77,13 +94,25 @@ impl Agent {
         }
     }
 
+    fn set_state(&mut self, engine_state: BoardState) {
+        log::debug!(
+            "our state: {:?}, engine_state: {:?}",
+            self.state,
+            engine_state
+        );
+        assert_eq!(self.state, engine_state);
+        self.state = engine_state;
+    }
+
     pub fn run<E: Evaluator>(&mut self, max_depth: usize, weights: Weights) {
         let mut message = read_engine_message();
+        let mut was_are_move = false;
         match message {
             EngineMessage::NewMatch { pos } => {
                 self.position = pos;
                 if pos == Position::South {
                     self.make_move::<E>(max_depth, weights);
+                    was_are_move = true;
                 }
             }
             EngineMessage::GameOver => {
@@ -104,17 +133,30 @@ impl Agent {
                     state,
                     turn,
                 } => {
-                    self.state = state;
+                    log::debug!("state: {:?}", self.state);
+                    log::debug!("our pos {:?}", self.position);
                     match player_move {
                         PlayerMove::Swap => {
                             self.swap_sides();
                         }
-                        PlayerMove::Move { .. } => { /* Ignore their move for now */ }
+                        PlayerMove::Move { .. } => {
+                            let move_pos = if was_are_move {
+                                self.position
+                            } else {
+                                !self.position
+                            };
+                            log::debug!("here? {:?} {:?}", player_move, move_pos);
+                            self.state.apply_move(player_move, move_pos, false);
+                        }
                     }
+                    self.set_state(state);
 
                     our_turn = match turn {
                         Turn::You => true,
-                        Turn::Opponent => false,
+                        Turn::Opponent => {
+                            was_are_move = false;
+                            false
+                        }
                         Turn::End => {
                             return;
                         }
@@ -124,6 +166,7 @@ impl Agent {
             }
             if our_turn {
                 self.make_move::<E>(max_depth, weights);
+                was_are_move = true;
             }
         }
     }
