@@ -85,7 +85,7 @@ impl Agent {
             log::debug!("Done swap {:?}", self.position);
             true
         } else {
-          false
+            false
         };
         self.send_move(chosen_move);
         self.first_move = false;
@@ -151,7 +151,13 @@ impl Agent {
                             } else {
                                 !self.position
                             };
-                            log::debug!("here? {:?} {:?} -- us {:?} {:?}", player_move, move_pos, self.position, was_our_move);
+                            log::debug!(
+                                "here? {:?} {:?} -- us {:?} {:?}",
+                                player_move,
+                                move_pos,
+                                self.position,
+                                was_our_move
+                            );
                             self.state.apply_move(player_move, move_pos, false);
                         }
                     }

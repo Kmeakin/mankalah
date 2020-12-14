@@ -1,4 +1,6 @@
-use crate::board::{BoardState, Position, PITS_PER_PLAYER, TOTAL_PITS};
+use crate::board::{
+    BoardState, FinalLocation, Nat, PlayerMove, Position, PITS_PER_PLAYER, TOTAL_PITS,
+};
 use ordered_float::OrderedFloat;
 
 pub type Score = OrderedFloat<f32>;
@@ -34,32 +36,58 @@ fn current_score(board: &BoardState) -> i8 {
 fn offensive_capture(board: &BoardState) -> i8 {
     fn count_captures(board: &BoardState, pos: Position) -> i8 {
         let mut n_captures = 0;
-        for (starting_pit, &n_stones) in board[pos]
-            .pits
-            .iter()
-            .enumerate()
-            .filter(|(_, &n_stones)| n_stones > 0)
-        {
-            let final_pit = (starting_pit + n_stones as usize) % (TOTAL_PITS - 1);
-            match (
-                board[pos].pits.get(final_pit),
-                board[!pos].pits.get(final_pit),
-            ) {
-                (Some(&n_landed), Some(&n_opposite)) => {
-                    let n_stones_deposited_in_starting_pit = n_stones as usize / (TOTAL_PITS - 1);
+        // for (starting_pit, &n_stones) in board[pos]
+        //     .pits
+        //     .iter()
+        //     .enumerate()
+        //     .filter(|(_, &n_stones)| n_stones > 0)
+        // {
+        //     let final_pit = (starting_pit + n_stones as usize) % (TOTAL_PITS - 1);
+        //     if final_pit >= 7 {
+        //       continue;
+        //     }
+        //     if let (Some(&n_landed), Some(&n_opposite)) = (
+        //         board[pos].pits.get(final_pit),
+        //         board[!pos]
+        //             .pits
+        //             .get(BoardState::opposite_pit(final_pit as Nat) as usize),
+        //     ) {
+        //         let n_stones_deposited_in_starting_pit = n_stones as usize /
+        // (TOTAL_PITS - 1);
 
-                    // player can capture if:
-                    let a = n_landed == 0; // the stone lands in an empty pit
-                    let b = final_pit == starting_pit; // or the stone lands in the pit where he started
-                    let c = n_stones_deposited_in_starting_pit == 1; // but only when that stone is the first stone deposited in the pit where he
-                                                                     // started
-                    let d = n_opposite > 0; // and there are more than 0 stones in the pit opposite
+        //         // player can capture if:
+        //         let a = n_landed == 0; // the stone lands in an empty pit
+        //         let b = final_pit == starting_pit; // or the stone lands in the pit
+        // where he started         let c = n_stones_deposited_in_starting_pit
+        // == 1; // but only when that stone is the first stone deposited in the pit
+        // where he                                                          //
+        // started         let d = n_opposite > 0; // and there are more than 0
+        // stones in the pit opposite
 
-                    if (a || (b && c)) && d {
-                        n_captures += n_opposite + 1
+        //         if (a || (b && c)) && d {
+        //             n_captures += n_opposite + 1
+        //         }
+        //     }
+        // }
+        // n_captures as i8
+        for possible_move in board[pos].moves_iter() {
+            if let PlayerMove::Move { n } = possible_move {
+                let mut board = board.clone();
+                let final_location = board.sow_seeds(pos, n);
+                match (pos, final_location) {
+                    (Position::South, FinalLocation::South(n))
+                    | (Position::North, FinalLocation::North(n)) => {
+                        let captured = board[!pos].pits[BoardState::opposite_pit(n) as usize];
+                        if board[pos].pits[n as usize] == 1 && captured > 0 {
+                            n_captures += captured + 1;
+                        }
+                    }
+                    _ => {
+                        continue;
                     }
                 }
-                _ => {}
+            } else {
+                unreachable!();
             }
         }
         n_captures as i8
@@ -125,12 +153,12 @@ mod test {
 
     #[test]
     fn north_can_capture_1() {
-        test_offensive_capture([1, 1, 1, 1, 1, 1, 0], [1; 7], -2);
-        test_offensive_capture([1, 1, 1, 1, 1, 0, 1], [1; 7], -2);
-        test_offensive_capture([1, 1, 1, 1, 0, 1, 1], [1; 7], -2);
-        test_offensive_capture([1, 1, 1, 0, 1, 1, 1], [1; 7], -2);
-        test_offensive_capture([1, 1, 0, 1, 1, 1, 1], [1; 7], -2);
         test_offensive_capture([1, 0, 1, 1, 1, 1, 1], [1; 7], -2);
+        test_offensive_capture([1, 1, 0, 1, 1, 1, 1], [1; 7], -2);
+        test_offensive_capture([1, 1, 1, 0, 1, 1, 1], [1; 7], -2);
+        test_offensive_capture([1, 1, 1, 1, 0, 1, 1], [1; 7], -2);
+        test_offensive_capture([1, 1, 1, 1, 1, 0, 1], [1; 7], -2);
+        test_offensive_capture([1, 1, 1, 1, 1, 1, 0], [1; 7], -2);
     }
 
     #[test]
@@ -175,7 +203,7 @@ mod test {
         test_offensive_capture(
             [0, 1, 1, 1, 1, 10, 1], // north
             [1, 1, 1, 1, 1, 1, 1],  // south
-            -2,
+            -3,
         );
     }
 
@@ -184,7 +212,7 @@ mod test {
         test_offensive_capture(
             [0, 1, 1, 1, 1, 25, 1], // north
             [1, 1, 1, 1, 1, 1, 1],  // south
-            -2,
+            0,                      // can't capture... seeds filled after wrap.
         );
     }
 
@@ -193,7 +221,7 @@ mod test {
         test_offensive_capture(
             [0, 1, 1, 1, 1, 15, 1], // north
             [1, 1, 1, 1, 1, 1, 1],  // south
-            -2,
+            -3,
         );
     }
 

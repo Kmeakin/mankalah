@@ -190,7 +190,7 @@ impl Iterator for SowSeedsIterator {
 }
 
 impl BoardState {
-    fn sow_seeds(&mut self, pos: Position, n: Nat) -> FinalLocation {
+    pub fn sow_seeds(&mut self, pos: Position, n: Nat) -> FinalLocation {
         let mut n = n;
         let mut stones_left = self[pos].pits[n as usize];
         self[pos].pits[n as usize] = 0;
@@ -210,11 +210,13 @@ impl BoardState {
         }
     }
 
+    pub fn opposite_pit(n: Nat) -> Nat { (PITS_PER_PLAYER as Nat) - 1 - n }
+
     fn try_capture(&mut self, position: Position, final_pit: Nat) {
         let final_pit = final_pit as usize;
         if self[position].pits[final_pit] == 1 {
             // must have been 0 before
-            let opp_bit = 6 - final_pit;
+            let opp_bit = Self::opposite_pit(final_pit as Nat) as usize;
             let captured = self[!position].pits[opp_bit];
             if captured > 0 {
                 self[position].pits[final_pit] = 0;
@@ -387,7 +389,7 @@ mod test {
         let mut board_state = BoardState {
             north: PlayerState {
                 score: 0,
-                pits: [0, 7, 0, 0, 0, 0, 0],
+                pits: [0, 0, 0, 0, 0, 7, 0],
             },
             south: PlayerState {
                 score: 0,
