@@ -8,7 +8,8 @@ img[alt~="center"] {
 }
 </style>
 
-<!-- What you need to tell us:
+<!--
+What you need to tell us:
 1. what method you use (dont need to explain how it works)
     1. Alpha beta with heuristics
     1.
@@ -20,7 +21,8 @@ img[alt~="center"] {
 5. Any experiments used to inform decisions, or for evaluation
 6. quantitative measures of performance (eg depth of seach, number of playouts per move, training time etc)
 7. what you expect to have accomplished by submission
-8. each member of the group should say something about the content, eg their contribution to the project -->
+8. each member of the group should say something about the content, eg their contribution to the project
+-->
 
 # Group 23
 
@@ -35,7 +37,7 @@ We used Alpha-Beta search guided by heuristics:
 3. Difference between player's chaining potential (moves that allow the player to have a second turn) and opponent's chaining potential
 4. Difference in seeds on each side (avoid starvation)
 
-These heuristics are used to evaluate the board at the depth limit, and to decide the order to search child nodes in the search.
+These heuristics are used to evaluate the board at the depth limit, and to decide the order to search child nodes.
 
 ---
 
