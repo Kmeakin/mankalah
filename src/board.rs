@@ -3,7 +3,7 @@ use std::{
     ops::{Index, IndexMut, Not},
 };
 
-use crate::heuristics::Score;
+use crate::heuristics::{weighted_heuristic, Weights, Score};
 pub type Nat = u8;
 pub const PITS_PER_PLAYER: usize = 7;
 pub const TOTAL_PITS: usize = 2 * (PITS_PER_PLAYER + 1);
@@ -189,6 +189,9 @@ impl Iterator for SowSeedsIterator {
     }
 }
 
+pub type ChildBoard = (PlayerMove, BoardState, Position, bool);
+pub type Children = [Option<ChildBoard>; 8];
+
 impl BoardState {
     pub fn sow_seeds(&mut self, pos: Position, n: Nat) -> FinalLocation {
         let mut n = n;
@@ -268,11 +271,12 @@ impl BoardState {
         self.clone().apply_move(moove, position, first_move)
     }
 
+
     pub fn child_boards(
         &self,
         position: Position,
         first_move: bool,
-    ) -> impl Iterator<Item = (PlayerMove, BoardState, Position, bool)> + '_ {
+    ) -> impl Iterator<Item = ChildBoard> + '_ {
         let boards = self[position].moves_iter().map(move |player_move| {
             let (board, next_position, next_first_move) =
                 self.do_move(player_move, position, first_move);
@@ -290,6 +294,41 @@ impl BoardState {
         } else {
             boards.chain(None)
         }
+    }
+
+    pub fn child_boards_sorted_by_heuristics<'a>(
+      &self, child_boards: &'a mut Children, position: Position, first_move: bool, weights: Weights
+    ) -> impl Iterator<Item = ChildBoard> + 'a {
+      let mut child_boards_iter = self.child_boards(position, first_move);
+
+      child_boards[0] = child_boards_iter.next(); // 1
+      child_boards[1] = child_boards_iter.next(); // 2
+      child_boards[2] = child_boards_iter.next(); // 3
+      child_boards[3] = child_boards_iter.next(); // 4
+      child_boards[4] = child_boards_iter.next(); // 5
+      child_boards[5] = child_boards_iter.next(); // 6
+      child_boards[6] = child_boards_iter.next(); // 7
+      child_boards[7] = child_boards_iter.next(); // SWAP
+
+      let eval_child = |child: &Option<ChildBoard>| {
+        if let Some(child) = child {
+          weighted_heuristic(weights, &child.1)
+        } else {
+          OrderedFloat(-f32::INFINITY)
+        }
+      };
+
+      child_boards.sort_unstable_by(|a, b| {
+          let a_val = eval_child(a);
+          let b_val = eval_child(b);
+          if position == Position::South {
+            b_val.cmp(&a_val)
+          } else {
+            a_val.cmp(&b_val)
+          }
+      });
+
+      child_boards.iter().filter_map(|child| *child)
     }
 
     /// Return Some(score) if board state is terminal

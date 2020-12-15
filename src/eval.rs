@@ -1,5 +1,5 @@
 use crate::{
-    board::{BoardState, PlayerMove, Position},
+    board::{BoardState, PlayerMove, Position, Children},
     heuristics::{weighted_heuristic, Score, Weights},
 };
 use ordered_float::OrderedFloat;
@@ -129,13 +129,14 @@ fn alpha_beta(
         );
         (None, score)
     } else {
+        let mut children: Children = [None; 8];
         match pos {
             Position::South => {
                 let mut score = OrderedFloat(-f32::INFINITY);
                 let mut value = score;
                 let mut best_move: Option<PlayerMove> = None;
                 for (the_move, child, next_pos, next_fist_move) in
-                    board.child_boards(pos, first_move)
+                    board.child_boards_sorted_by_heuristics(&mut children, pos, first_move, weights)
                 {
                     log::debug!(
                         "{:depth$}child_board = {child:?}",
@@ -189,7 +190,7 @@ fn alpha_beta(
                 let mut value = score;
                 let mut best_move: Option<PlayerMove> = None;
                 for (the_move, child, next_pos, next_first_move) in
-                    board.child_boards(pos, first_move)
+                  board.child_boards_sorted_by_heuristics(&mut children, pos, first_move, weights)
                 {
                     log::debug!(
                         "{:depth$}the_move = {the_move:?} child_board = {child:?}",
