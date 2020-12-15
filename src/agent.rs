@@ -66,7 +66,8 @@ impl Agent {
     }
 
     fn make_move<E: Evaluator>(&mut self, max_depth: usize, weights: Weights) -> bool {
-        let start = Instant::now();
+        log::debug!("Getting move: pos = {:?}", self.position);
+        // let start = Instant::now();
         // let mut depth = 5;
         // let chosen_move = loop {
         //   let picked_move = self.get_move::<E>(depth, weights);
@@ -75,7 +76,6 @@ impl Agent {
         //   }
         //   depth += 1;
         // };
-        log::debug!("Getting move: pos = {:?}", self.position);
         let chosen_move = self.get_move::<E>(max_depth, weights);
         log::debug!("chosen_move = {:?}", chosen_move);
 

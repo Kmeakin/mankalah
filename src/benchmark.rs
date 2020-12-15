@@ -23,12 +23,12 @@ struct BenchmarkData {
 fn main() {
     println!("Depth|Winner|Score");
     println!("-----|-----|-----");
-    for depth in 0..50 {
+    for depth in 1..50 {
         let BenchmarkData {
             score,
             depth,
             winner,
-        } = benchmark(depth, [0.89, 0.39, 0.48, 0.58, 0.08]);
+        } = benchmark(depth, [1.0, 0.11, 0.52, 0.15, 0.59]);
         println!("{depth}|{winner}|{score}");
     }
 }
@@ -37,7 +37,6 @@ fn benchmark(depth: usize, weights: [f32; 5]) -> BenchmarkData {
     let output = Command::new("java")
         .arg("-jar")
         .arg("ManKalah.jar")
-        .arg("java -jar MKRefAgent.jar")
         .arg(format!(
             "cargo run --release --bin mankalah -- --search=alpha-beta --depth={} --weights {}",
             depth,
@@ -47,6 +46,7 @@ fn benchmark(depth: usize, weights: [f32; 5]) -> BenchmarkData {
                 .collect::<Vec<_>>()
                 .join(" ")
         ))
+        .arg("java -jar MKRefAgent.jar")
         .output()
         .unwrap();
     let stderr = String::from_utf8(output.stderr).unwrap();
@@ -65,6 +65,7 @@ fn benchmark(depth: usize, weights: [f32; 5]) -> BenchmarkData {
     };
 
     let winner_score_str = stderr[len - 5];
+    // println!("{:?}", stderr);
     let winner_score: i32 = winner_score_str["SCORE: ".len()..].parse().unwrap();
 
     let score = if winner == Winner::North {

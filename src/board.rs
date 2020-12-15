@@ -304,7 +304,8 @@ impl BoardState {
                     Position::South => (our_score, opp_score),
                     Position::North => (opp_score, our_score),
                 };
-                Some(OrderedFloat((p1_score - p2_score) as f32))
+                // * 1000 for win/lose nodes so we don't confuse with heuristics
+                Some(OrderedFloat((p1_score - p2_score) as f32 * 1000.0))
             }
             Some(_) => None,
         }
