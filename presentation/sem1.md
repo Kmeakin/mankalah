@@ -1,6 +1,12 @@
 ---
 marp: true
 ---
+<style>
+img[alt~="center"] {
+  display: block;
+  margin: 0 auto;
+}
+</style>
 
 <!-- What you need to tell us:
 1. what method you use (dont need to explain how it works)
@@ -16,6 +22,11 @@ marp: true
 7. what you expect to have accomplished by submission
 8. each member of the group should say something about the content, eg their contribution to the project -->
 
+# Group 23
+
+## Karl Meakin & Ben Maxwell
+
+---
 
 # Our approach
 We used Alpha-Beta search guided by heuristics:
@@ -40,7 +51,7 @@ We used a genetic algorithm library to find weights for our heuristic to maximis
 <!--
 We found a tool that allowed us to specify a cost function, and then run a genetic algorithm to (attempt to) find the maximum of that function. We made a function that takes the weights vector for our agent and then plays a game against a [????] test bot, and uses our score as the result.  -->
 
-![](./ga_res.png)
+![center](./ga_res.png)
 
 ```
  The best solution found:
@@ -54,5 +65,5 @@ We found a tool that allowed us to specify a cost function, and then run a genet
 
 # Performance
 
-![](./perf_depth.png)
+![center](./ga_matches.png)
 
