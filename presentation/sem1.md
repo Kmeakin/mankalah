@@ -50,7 +50,9 @@ These heuristics are used to evaluate the board at the depth limit, and to decid
 # Unique aspects
 
 ## Rust
-We chose to implement our bot in Rust (a systems programming language with compile time memory safey checks) to guarantee high performance vs Java or Python.
+We chose to implement our bot in Rust. Rust is a systems programming language with performance competitve with c++ but with compile-time memory safety. 
+Because the size of the board is fixed at 7 pits per player, we can operate on fixed sized arrays on the stack, and avoid any dynamic memory allocation.
+These factors allow us to acheive a higher performance, and explore the game tree to a deeper depth in the same amount of time, than the same algorithm implemented in Java or Python
 
 ## Weights finding
 We used a genetic algorithm library to find weights for our heuristic to maximise win margin when playing against the provided test bots.
