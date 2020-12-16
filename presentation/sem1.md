@@ -84,6 +84,8 @@ We found a tool that allowed us to specify a cost function, and then run a genet
 ---
 
 # Performance
+Results from performing 12 matches agaisnt each bot, with a random starting position and weights determined by the previous training step.
 
 ![center](./depth_and_score.png)
 
+From these benchmarks it appears that 11 is the optimal depth. At a depth of 11, the average time per move is 1917ms.
