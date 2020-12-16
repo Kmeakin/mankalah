@@ -69,3 +69,9 @@ We found a tool that allowed us to specify a cost function, and then run a genet
 
 ![center](./ga_matches.png)
 
+---
+
+# Performance
+
+![center](./depth_and_score.png)
+
