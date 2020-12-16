@@ -31,6 +31,12 @@ What you need to tell us:
 ---
 
 # Our approach
+## Communicating with the engine
+We used a parser generator to parse messages recieved from the engine. This was faster to setup and more robust than manually splitting and searching the string.
+
+## Selecting moves
+Once a message is recieved from the game engine, update the agent's internal model of the state of the board, and consider which of the available moves to select next
+
 We used Alpha-Beta search guided by heuristics:
 1. Difference between player's score and opponent's score
 2. Difference between number of stones player can capture and number of stones opponent can capture
