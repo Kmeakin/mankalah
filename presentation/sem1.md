@@ -34,7 +34,9 @@ What you need to tell us:
 ## Communicating with the engine
 We used a parser generator to parse messages recieved from the engine. This was faster to setup and more robust than manually splitting and searching the string.
 
-## Selecting moves
+---
+
+# Selecting moves
 Once a message is recieved from the game engine, update the agent's internal model of the state of the board, and consider which of the available moves to select next
 
 We used Alpha-Beta search guided by heuristics:
