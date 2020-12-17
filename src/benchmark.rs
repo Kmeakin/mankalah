@@ -28,7 +28,7 @@ fn main() {
         "java -jar Test_Agents/JimmyPlayer.jar",
         "java -jar Test_Agents/Group2Agent.jar",
     ] {
-        for side in &[true, false] {
+        for side in &[false] {
             println!(
                 "Depth|Winner|Score|Our time|Thier time (we are {}, agaisnt \"{}\")",
                 if *side { "NORTH" } else { "SOUTH" },
@@ -43,7 +43,7 @@ fn main() {
                     winner,
                     our_time,
                     thier_time,
-                } = benchmark(depth, [0.96, 0.83, 0.52, 0.60, 0.13], opp, *side);
+                } = benchmark(depth, [1.0, 0.6, 0.0, 0.95, 0.59], opp, *side);
                 println!("{depth}|{winner}|{score}|{our_time}|{thier_time}");
             }
         }
@@ -79,10 +79,10 @@ fn benchmark(depth: usize, weights: [f32; 5], opponent: &str, is_north: bool) ->
     let winner_score: i32 = winner_score_str["SCORE: ".len()..].parse().unwrap();
 
     let winner_str = stderr[len - 6];
-
+    println!("{} -- {}",winner_str, south);
     let (winner, score) = if winner_str.starts_with("DRAW") {
         (Winner::Draw, 0)
-    } else if winner_str.starts_with("WINNER: Player 1") {
+    } else if winner_str.starts_with("WINNER: Player 2") {
         (
             Winner::North,
             if is_north {
@@ -91,7 +91,7 @@ fn benchmark(depth: usize, weights: [f32; 5], opponent: &str, is_north: bool) ->
                 -winner_score
             },
         )
-    } else if winner_str.starts_with("WINNER: Player 2") {
+    } else if winner_str.starts_with("WINNER: Player 1") {
         (
             Winner::South,
             if !is_north {
